@@ -462,7 +462,7 @@ CREATE TABLE Enrollments (
 CREATE TABLE Grades (
     grade_id INT PRIMARY KEY AUTO_INCREMENT,
     enrollment_id INT NOT NULL,
-    grade_value DECIMAL(3, 2) NOT NULL,
+    grade_value DECIMAL(3, 2) NOT NULL CHECK (grade_value >= 1.0 AND grade_value <= 5.0),
     grade_type VARCHAR(50) DEFAULT 'Exam',
     grade_date DATE NOT NULL,
     description VARCHAR(255),

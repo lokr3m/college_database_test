@@ -1,6 +1,11 @@
 // API Base URL - Update this to your backend URL
 const API_BASE = 'backend/api.php';
 
+// Grade constants
+const GRADE_MIN = 1.0;
+const GRADE_MAX = 5.0;
+const GRADE_TYPES = ['Exam', 'Homework', 'Project', 'Quiz', 'Lab', 'Essay', 'Presentation'];
+
 // Global state
 let currentSection = 'departments';
 let departments = [];
@@ -1338,6 +1343,10 @@ function showAddGradeForm() {
         `<option value="${e.enrollment_id}">${e.student_name} - ${e.course_code} (${e.course_name})</option>`
     ).join('');
     
+    const gradeTypeOptions = GRADE_TYPES.map(type => 
+        `<option value="${type}">${type}</option>`
+    ).join('');
+    
     const form = `
         <h2>Add Grade</h2>
         <form onsubmit="submitGrade(event)">
@@ -1349,19 +1358,13 @@ function showAddGradeForm() {
                 </select>
             </div>
             <div class="form-group">
-                <label>Grade Value* (1.0 - 5.0)</label>
-                <input type="number" step="0.01" min="1" max="5" name="grade_value" required>
+                <label>Grade Value* (${GRADE_MIN} - ${GRADE_MAX})</label>
+                <input type="number" step="0.01" min="${GRADE_MIN}" max="${GRADE_MAX}" name="grade_value" required>
             </div>
             <div class="form-group">
                 <label>Grade Type</label>
                 <select name="grade_type">
-                    <option value="Exam">Exam</option>
-                    <option value="Homework">Homework</option>
-                    <option value="Project">Project</option>
-                    <option value="Quiz">Quiz</option>
-                    <option value="Lab">Lab</option>
-                    <option value="Essay">Essay</option>
-                    <option value="Presentation">Presentation</option>
+                    ${gradeTypeOptions}
                 </select>
             </div>
             <div class="form-group">
@@ -1405,8 +1408,7 @@ async function editGrade(id) {
         `<option value="${e.enrollment_id}" ${e.enrollment_id == grade.enrollment_id ? 'selected' : ''}>${e.student_name} - ${e.course_code} (${e.course_name})</option>`
     ).join('');
     
-    const gradeTypes = ['Exam', 'Homework', 'Project', 'Quiz', 'Lab', 'Essay', 'Presentation'];
-    const gradeTypeOptions = gradeTypes.map(type => 
+    const gradeTypeOptions = GRADE_TYPES.map(type => 
         `<option value="${type}" ${type === grade.grade_type ? 'selected' : ''}>${type}</option>`
     ).join('');
     
@@ -1420,8 +1422,8 @@ async function editGrade(id) {
                 </select>
             </div>
             <div class="form-group">
-                <label>Grade Value* (1.0 - 5.0)</label>
-                <input type="number" step="0.01" min="1" max="5" name="grade_value" value="${grade.grade_value}" required>
+                <label>Grade Value* (${GRADE_MIN} - ${GRADE_MAX})</label>
+                <input type="number" step="0.01" min="${GRADE_MIN}" max="${GRADE_MAX}" name="grade_value" value="${grade.grade_value}" required>
             </div>
             <div class="form-group">
                 <label>Grade Type</label>
