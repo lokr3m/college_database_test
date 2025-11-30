@@ -44,15 +44,21 @@ Kõik tabelid sisaldavad `created_at` ja `updated_at` välju, mida MySQL haldab 
                              │ PK: enroll_id   │
                              │ FK: student_id  │◄────┐
                              │ FK: course_id   │     │
-                             └─────────────────┘     │
-                                                     │
-                                              ┌──────┴────────┐
-                                              │   Students    │
-                                              │               │
-                                              │ PK: stud_id   │
-                                              │ FK: major_id  │
-                                              └───────────────┘
+                             └────────┬────────┘     │
+                                      │              │
+                                      │ 1:M   ┌──────┴────────┐
+                                      │       │   Students    │
+                                      ▼       │               │
+                             ┌─────────────────┐ PK: stud_id   │
+                             │     Grades      │ FK: major_id  │
+                             │                 │               │
+                             │ PK: grade_id    └───────────────┘
+                             │ FK: enroll_id   │
+                             └─────────────────┘
 ```
+
+**Note / Märkus**: GPA (Grade Point Average) is calculated from the Grades table as the average of all grade values.
+Keskmine hinne arvutatakse Hinnete tabelist kõigi hindeväärtuste keskmisena.
 
 ## Tables Details
 
@@ -320,9 +326,11 @@ Salvestab üliõilaste infot
 | date_of_birth | DATE | | Birth date | Sünnikuupäev |
 | enrollment_year | INT | | Year first enrolled | Esmakordselt registreerumise aasta |
 | major_department_id | INT | FOREIGN KEY | Major/primary department | Eriala/põhiosakond |
-| gpa | DECIMAL(3,2) | | Grade Point Average (0.00 to 5.00) | Keskmine hinne |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
 | updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+
+**Note / Märkus**: GPA (Grade Point Average / Keskmine hinne) is calculated from the Grades table, not stored directly.
+Keskmine hinne arvutatakse Hinnete tabelist, ei salvestata otse.
 
 **Relationships / Seosed**:
 - Many-to-One with Departments (major) (mitu-ühele osakondadega - eriala)
@@ -348,11 +356,37 @@ Haldab üliõilaste kursusele registreerimisi (Mitu-mitmele seos)
 **Relationships / Seosed**:
 - Many-to-One with Students (mitu-ühele üliõilastega)
 - Many-to-One with Courses (mitu-ühele kursustega)
+- One-to-Many with Grades (üks-mitmele hinnetega)
 
 **Constraints / Piirangud**:
 - UNIQUE(student_id, course_id) - A student can enroll in a course only once / Üliõilane saab kursusele registreeruda ainult üks kord
 - Students can enroll in multiple courses / Üliõilased võivad registreeruda mitmele kursusele
 - Courses can have multiple students / Kursustel võib olla mitu üliõilast
+
+---
+
+### 7. Grades (Hinded)
+**Purpose / Eesmärk**: Stores individual grades for students in their enrolled courses. The average grade (GPA) is calculated from this table.
+Salvestab üliõilaste individuaalseid hindeid nende registreeritud kursustes. Keskmine hinne (GPA) arvutatakse selle tabeli põhjal.
+
+| Column | Type | Constraints | Description | Kirjeldus (Estonian) |
+|--------|------|-------------|-------------|----------------------|
+| grade_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| enrollment_id | INT | NOT NULL, FOREIGN KEY | The enrollment this grade belongs to | Registreerumine, millele hinne kuulub |
+| grade_value | DECIMAL(3,2) | NOT NULL | Numeric grade value (1.0 to 5.0) | Numbriline hinde väärtus (1.0 kuni 5.0) |
+| grade_type | VARCHAR(50) | DEFAULT 'Exam' | Type of assessment (Exam, Homework, Project, Quiz, Lab, Essay, Presentation) | Hindamise tüüp |
+| grade_date | DATE | NOT NULL | Date when the grade was given | Kuupäev, millal hinne anti |
+| description | VARCHAR(255) | | Optional description of the grade | Hinde valikuline kirjeldus |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
+| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+
+**Relationships / Seosed**:
+- Many-to-One with Enrollments (mitu-ühele registreerimistega)
+
+**Business Rules / Ärireeglid**:
+- Multiple grades can be assigned to one enrollment / Ühele registreerumisele võib määrata mitu hinnet
+- The student's GPA is calculated as the average of all grade_values / Õpilase keskmine hinne arvutatakse kõigi grade_value väärtuste keskmisena
+- Grade values use Estonian grading scale: 5 (excellent), 4 (good), 3 (satisfactory), 2 (poor), 1 (fail) / Hinde väärtused kasutavad Eesti hindamisskaalat
 
 ---
 
@@ -365,12 +399,14 @@ For optimal query performance, the following indexes are created:
 - **Courses**: `course_code` (UNIQUE), `department_id`, `instructor_id`
 - **Students**: `email` (UNIQUE), `major_department_id`
 - **Enrollments**: `student_id`, `course_id`, UNIQUE(student_id, course_id)
+- **Grades**: `enrollment_id`, `grade_date`
 
 ## Cascade Rules
 
 - **ON DELETE CASCADE**: Deleting a department removes all associated instructors, courses, and enrollments
 - **ON DELETE SET NULL**: Deleting an instructor sets course instructor_id to NULL
 - **ON DELETE CASCADE**: Deleting a student or course removes associated enrollments
+- **ON DELETE CASCADE**: Deleting an enrollment removes associated grades
 
 ## Business Rules Enforced by Schema
 
