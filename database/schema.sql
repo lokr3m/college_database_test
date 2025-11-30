@@ -15,6 +15,7 @@
 -- Need väljad haldab MySQL automaatselt ja jälgivad, millal kirjed loodi ja viimati muudeti.
 
 -- Drop tables if they exist (in reverse order of dependencies)
+DROP TABLE IF EXISTS Grades;
 DROP TABLE IF EXISTS Enrollments;
 DROP TABLE IF EXISTS DepartmentHeads;
 DROP TABLE IF EXISTS Courses;
@@ -364,7 +365,10 @@ CREATE TABLE Courses (
 --   - date_of_birth: Student's birth date / Õpilase sünnikuupäev
 --   - enrollment_year: Year the student first enrolled / Aasta, millal õpilane esmakordselt registreerus
 --   - major_department_id: Student's major/primary department / Õpilase eriala/põhiosakond
---   - gpa: Grade Point Average (0.00 to 5.00 scale) / Keskmine hinne (0.00 kuni 5.00 skaalal)
+--
+-- Note / Märkus:
+--   GPA is calculated from the Grades table, not stored directly.
+--   Keskmine hinne (GPA) arvutatakse Hinnete tabelist, ei salvestata otse.
 --
 -- Business Rules / Ärireeglid:
 --   - Students can enroll in MULTIPLE courses
@@ -381,7 +385,6 @@ CREATE TABLE Students (
     date_of_birth DATE,
     enrollment_year INT,
     major_department_id INT,
-    gpa DECIMAL(3, 2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (major_department_id) REFERENCES Departments(department_id) ON DELETE SET NULL,
@@ -431,4 +434,41 @@ CREATE TABLE Enrollments (
     UNIQUE KEY unique_enrollment (student_id, course_id),
     INDEX idx_student (student_id),
     INDEX idx_course (course_id)
+);
+
+-- ============================================================================
+-- GRADES TABLE (Hinded)
+-- ============================================================================
+-- Purpose / Eesmärk:
+--   Stores individual grades for students in their enrolled courses.
+--   The average grade (GPA) is calculated from this table instead of being stored directly.
+--   Salvestab üliõilaste individuaalseid hindeid nende registreeritud kursustes.
+--   Keskmine hinne (GPA) arvutatakse selle tabeli põhjal, mitte ei salvestata otse.
+--
+-- Fields / Väljad:
+--   - grade_id: Unique identifier for the grade / Hinde unikaalne identifikaator
+--   - enrollment_id: The enrollment this grade belongs to / Registreerumine, millele hinne kuulub
+--   - grade_value: Numeric grade value (1.0 to 5.0) / Numbriline hinde väärtus (1.0 kuni 5.0)
+--   - grade_type: Type of assessment (e.g., exam, homework, project) / Hindamise tüüp
+--   - grade_date: Date when the grade was given / Kuupäev, millal hinne anti
+--   - description: Optional description of the grade / Hinde valikuline kirjeldus
+--
+-- Business Rules / Ärireeglid:
+--   - Multiple grades can be assigned to one enrollment
+--   - The student's GPA is calculated as the average of all grade_values
+--   - Ühele registreerumisele võib määrata mitu hinnet
+--   - Õpilase keskmine hinne arvutatakse kõigi grade_value väärtuste keskmisena
+-- ============================================================================
+CREATE TABLE Grades (
+    grade_id INT PRIMARY KEY AUTO_INCREMENT,
+    enrollment_id INT NOT NULL,
+    grade_value DECIMAL(3, 2) NOT NULL,
+    grade_type VARCHAR(50) DEFAULT 'Exam',
+    grade_date DATE NOT NULL,
+    description VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (enrollment_id) REFERENCES Enrollments(enrollment_id) ON DELETE CASCADE,
+    INDEX idx_enrollment (enrollment_id),
+    INDEX idx_grade_date (grade_date)
 );

@@ -40,16 +40,16 @@ INSERT INTO Courses (course_code, course_name, department_id, instructor_id, cre
 ('BUS101', 'Introduction to Business', 5, 7, 3, 'Fall', 2024, 'BUS-201', 'Mon/Wed 10:00-11:30'),
 ('BUS201', 'Marketing Fundamentals', 5, 8, 3, 'Fall', 2024, 'BUS-202', 'Tue/Thu 14:00-15:30');
 
--- Insert Students
-INSERT INTO Students (first_name, last_name, email, phone, date_of_birth, enrollment_year, major_department_id, gpa) VALUES
-('Alice', 'Wilson', 'alice.wilson@student.college.edu', '555-1001', '2003-05-15', 2023, 1, 3.85),
-('Bob', 'Taylor', 'bob.taylor@student.college.edu', '555-1002', '2002-11-22', 2022, 1, 3.45),
-('Charlie', 'Moore', 'charlie.moore@student.college.edu', '555-1003', '2003-08-10', 2023, 2, 3.72),
-('Diana', 'Thomas', 'diana.thomas@student.college.edu', '555-1004', '2004-02-28', 2024, 3, 3.90),
-('Edward', 'Jackson', 'edward.jackson@student.college.edu', '555-1005', '2003-07-19', 2023, 5, 3.55),
-('Fiona', 'White', 'fiona.white@student.college.edu', '555-1006', '2002-12-05', 2022, 4, 3.68),
-('George', 'Harris', 'george.harris@student.college.edu', '555-1007', '2003-09-14', 2023, 1, 3.25),
-('Hannah', 'Martin', 'hannah.martin@student.college.edu', '555-1008', '2004-04-30', 2024, 2, 3.95);
+-- Insert Students (GPA will be calculated from Grades table / GPA arvutatakse Hinnete tabelist)
+INSERT INTO Students (first_name, last_name, email, phone, date_of_birth, enrollment_year, major_department_id) VALUES
+('Alice', 'Wilson', 'alice.wilson@student.college.edu', '555-1001', '2003-05-15', 2023, 1),
+('Bob', 'Taylor', 'bob.taylor@student.college.edu', '555-1002', '2002-11-22', 2022, 1),
+('Charlie', 'Moore', 'charlie.moore@student.college.edu', '555-1003', '2003-08-10', 2023, 2),
+('Diana', 'Thomas', 'diana.thomas@student.college.edu', '555-1004', '2004-02-28', 2024, 3),
+('Edward', 'Jackson', 'edward.jackson@student.college.edu', '555-1005', '2003-07-19', 2023, 5),
+('Fiona', 'White', 'fiona.white@student.college.edu', '555-1006', '2002-12-05', 2022, 4),
+('George', 'Harris', 'george.harris@student.college.edu', '555-1007', '2003-09-14', 2023, 1),
+('Hannah', 'Martin', 'hannah.martin@student.college.edu', '555-1008', '2004-04-30', 2024, 2);
 
 -- Insert Enrollments
 INSERT INTO Enrollments (student_id, course_id, enrollment_date, grade, status) VALUES
@@ -69,3 +69,44 @@ INSERT INTO Enrollments (student_id, course_id, enrollment_date, grade, status) 
 (7, 2, '2024-08-20', NULL, 'Active'),
 (8, 4, '2024-08-20', 'A', 'Active'),
 (8, 5, '2024-08-20', NULL, 'Active');
+
+-- Insert Grades (Hinded)
+-- Grade values use Estonian grading scale: 5 (excellent), 4 (good), 3 (satisfactory), 2 (poor), 1 (fail)
+-- Hinde väärtused kasutavad Eesti hindamisskaalat: 5 (suurepärane), 4 (hea), 3 (rahuldav), 2 (puudulik), 1 (nõrk)
+INSERT INTO Grades (enrollment_id, grade_value, grade_type, grade_date, description) VALUES
+-- Alice Wilson grades (enrollment_id 1, 2, 3)
+(1, 4.50, 'Exam', '2024-10-15', 'Midterm exam'),
+(1, 5.00, 'Homework', '2024-09-20', 'Programming assignment 1'),
+(1, 4.00, 'Project', '2024-11-10', 'Final project'),
+(2, 4.00, 'Exam', '2024-10-20', 'Data structures midterm'),
+(2, 4.50, 'Homework', '2024-09-25', 'Linked list implementation'),
+-- Bob Taylor grades (enrollment_id 4, 5)
+(4, 3.50, 'Exam', '2024-10-15', 'Midterm exam'),
+(4, 4.00, 'Homework', '2024-09-20', 'Programming assignment 1'),
+(4, 3.00, 'Project', '2024-11-10', 'Final project'),
+-- Charlie Moore grades (enrollment_id 6, 7)
+(6, 5.00, 'Exam', '2024-10-18', 'Calculus midterm'),
+(6, 4.50, 'Homework', '2024-09-22', 'Problem set 1'),
+(7, 4.00, 'Exam', '2024-10-25', 'Linear algebra test'),
+(7, 4.50, 'Quiz', '2024-09-15', 'Weekly quiz'),
+-- Diana Thomas grades (enrollment_id 8, 9)
+(8, 5.00, 'Exam', '2024-10-20', 'Physics midterm'),
+(8, 4.50, 'Lab', '2024-09-28', 'Laboratory report'),
+(8, 5.00, 'Homework', '2024-10-05', 'Problem set'),
+-- Edward Jackson grades (enrollment_id 10, 11)
+(10, 3.50, 'Exam', '2024-10-22', 'Business midterm'),
+(10, 4.00, 'Presentation', '2024-11-05', 'Group presentation'),
+(11, 4.00, 'Exam', '2024-10-28', 'Marketing test'),
+(11, 3.50, 'Project', '2024-11-12', 'Marketing plan'),
+-- Fiona White grades (enrollment_id 12)
+(12, 4.00, 'Exam', '2024-10-18', 'English composition midterm'),
+(12, 4.50, 'Essay', '2024-09-30', 'Persuasive essay'),
+(12, 4.00, 'Essay', '2024-10-25', 'Research paper'),
+-- George Harris grades (enrollment_id 13, 14)
+(13, 2.50, 'Exam', '2024-10-15', 'Midterm exam'),
+(13, 3.00, 'Homework', '2024-09-20', 'Programming assignment 1'),
+(13, 3.50, 'Project', '2024-11-10', 'Final project'),
+-- Hannah Martin grades (enrollment_id 15, 16)
+(15, 5.00, 'Exam', '2024-10-18', 'Calculus midterm'),
+(15, 5.00, 'Homework', '2024-09-22', 'Problem set 1'),
+(15, 4.50, 'Quiz', '2024-10-01', 'Weekly quiz');

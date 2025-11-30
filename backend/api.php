@@ -50,6 +50,9 @@ switch ($entity) {
     case 'department-heads':
         handleDepartmentHeads($conn, $method, $id);
         break;
+    case 'grades':
+        handleGrades($conn, $method, $id);
+        break;
     default:
         http_response_code(404);
         echo json_encode(['error' => 'Invalid endpoint']);
@@ -269,7 +272,11 @@ function handleStudents($conn, $method, $id) {
 
 function getAllStudents($conn) {
     $stmt = $conn->query("
-        SELECT s.*, d.department_name as major_name
+        SELECT s.*, d.department_name as major_name,
+               (SELECT AVG(g.grade_value) 
+                FROM Grades g 
+                JOIN Enrollments e ON g.enrollment_id = e.enrollment_id 
+                WHERE e.student_id = s.student_id) as gpa
         FROM Students s 
         LEFT JOIN Departments d ON s.major_department_id = d.department_id 
         ORDER BY s.last_name, s.first_name
@@ -279,7 +286,11 @@ function getAllStudents($conn) {
 
 function getStudentById($conn, $id) {
     $stmt = $conn->prepare("
-        SELECT s.*, d.department_name as major_name
+        SELECT s.*, d.department_name as major_name,
+               (SELECT AVG(g.grade_value) 
+                FROM Grades g 
+                JOIN Enrollments e ON g.enrollment_id = e.enrollment_id 
+                WHERE e.student_id = s.student_id) as gpa
         FROM Students s 
         LEFT JOIN Departments d ON s.major_department_id = d.department_id 
         WHERE s.student_id = ?
@@ -297,8 +308,8 @@ function getStudentById($conn, $id) {
 function createStudent($conn) {
     $data = json_decode(file_get_contents('php://input'), true);
     $stmt = $conn->prepare("
-        INSERT INTO Students (first_name, last_name, email, phone, date_of_birth, enrollment_year, major_department_id, gpa) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Students (first_name, last_name, email, phone, date_of_birth, enrollment_year, major_department_id) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ");
     try {
         $stmt->execute([
@@ -308,8 +319,7 @@ function createStudent($conn) {
             $data['phone'] ?? null,
             $data['date_of_birth'] ?? null,
             $data['enrollment_year'] ?? null,
-            $data['major_department_id'] ?? null,
-            $data['gpa'] ?? null
+            $data['major_department_id'] ?? null
         ]);
         http_response_code(201);
         echo json_encode(['id' => $conn->lastInsertId(), 'message' => 'Student created successfully']);
@@ -323,7 +333,7 @@ function updateStudent($conn, $id) {
     $data = json_decode(file_get_contents('php://input'), true);
     $stmt = $conn->prepare("
         UPDATE Students 
-        SET first_name = ?, last_name = ?, email = ?, phone = ?, date_of_birth = ?, enrollment_year = ?, major_department_id = ?, gpa = ? 
+        SET first_name = ?, last_name = ?, email = ?, phone = ?, date_of_birth = ?, enrollment_year = ?, major_department_id = ? 
         WHERE student_id = ?
     ");
     try {
@@ -335,7 +345,6 @@ function updateStudent($conn, $id) {
             $data['date_of_birth'] ?? null,
             $data['enrollment_year'] ?? null,
             $data['major_department_id'] ?? null,
-            $data['gpa'] ?? null,
             $id
         ]);
         echo json_encode(['message' => 'Student updated successfully']);
@@ -672,5 +681,117 @@ function deleteDepartmentHead($conn, $id) {
     $stmt = $conn->prepare("DELETE FROM DepartmentHeads WHERE department_id = ?");
     $stmt->execute([$id]);
     echo json_encode(['message' => 'Department head removed successfully']);
+}
+
+/**
+ * Handle Grades CRUD operations
+ */
+function handleGrades($conn, $method, $id) {
+    switch ($method) {
+        case 'GET':
+            if ($id) {
+                getGradeById($conn, $id);
+            } else {
+                getAllGrades($conn);
+            }
+            break;
+        case 'POST':
+            createGrade($conn);
+            break;
+        case 'PUT':
+            updateGrade($conn, $id);
+            break;
+        case 'DELETE':
+            deleteGrade($conn, $id);
+            break;
+    }
+}
+
+function getAllGrades($conn) {
+    $stmt = $conn->query("
+        SELECT g.*, 
+               e.student_id, e.course_id,
+               CONCAT(s.first_name, ' ', s.last_name) as student_name,
+               c.course_code, c.course_name
+        FROM Grades g 
+        JOIN Enrollments e ON g.enrollment_id = e.enrollment_id
+        LEFT JOIN Students s ON e.student_id = s.student_id 
+        LEFT JOIN Courses c ON e.course_id = c.course_id
+        ORDER BY g.grade_date DESC
+    ");
+    echo json_encode($stmt->fetchAll());
+}
+
+function getGradeById($conn, $id) {
+    $stmt = $conn->prepare("
+        SELECT g.*, 
+               e.student_id, e.course_id,
+               CONCAT(s.first_name, ' ', s.last_name) as student_name,
+               c.course_code, c.course_name
+        FROM Grades g 
+        JOIN Enrollments e ON g.enrollment_id = e.enrollment_id
+        LEFT JOIN Students s ON e.student_id = s.student_id 
+        LEFT JOIN Courses c ON e.course_id = c.course_id
+        WHERE g.grade_id = ?
+    ");
+    $stmt->execute([$id]);
+    $result = $stmt->fetch();
+    if ($result) {
+        echo json_encode($result);
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Grade not found']);
+    }
+}
+
+function createGrade($conn) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $stmt = $conn->prepare("
+        INSERT INTO Grades (enrollment_id, grade_value, grade_type, grade_date, description) 
+        VALUES (?, ?, ?, ?, ?)
+    ");
+    try {
+        $stmt->execute([
+            $data['enrollment_id'],
+            $data['grade_value'],
+            $data['grade_type'] ?? 'Exam',
+            $data['grade_date'] ?? date('Y-m-d'),
+            $data['description'] ?? null
+        ]);
+        http_response_code(201);
+        echo json_encode(['id' => $conn->lastInsertId(), 'message' => 'Grade created successfully']);
+    } catch (PDOException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function updateGrade($conn, $id) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $stmt = $conn->prepare("
+        UPDATE Grades 
+        SET enrollment_id = ?, grade_value = ?, grade_type = ?, grade_date = ?, description = ? 
+        WHERE grade_id = ?
+    ");
+    try {
+        $stmt->execute([
+            $data['enrollment_id'],
+            $data['grade_value'],
+            $data['grade_type'] ?? 'Exam',
+            $data['grade_date'],
+            $data['description'] ?? null,
+            $id
+        ]);
+        echo json_encode(['message' => 'Grade updated successfully']);
+    } catch (PDOException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function deleteGrade($conn, $id) {
+    $stmt = $conn->prepare("DELETE FROM Grades WHERE grade_id = ?");
+    $stmt->execute([$id]);
+    echo json_encode(['message' => 'Grade deleted successfully']);
 }
 ?>

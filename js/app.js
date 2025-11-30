@@ -8,6 +8,7 @@ let instructors = [];
 let students = [];
 let courses = [];
 let enrollments = [];
+let grades = [];
 let departmentHeads = [];
 
 // Initialize app
@@ -55,6 +56,7 @@ async function loadAllData() {
         loadStudents(),
         loadCourses(),
         loadEnrollments(),
+        loadGrades(),
         loadDepartmentHeads()
     ]);
     renderCurrentSection();
@@ -82,6 +84,10 @@ async function loadSectionData(section) {
         case 'enrollments':
             await loadEnrollments();
             renderEnrollments();
+            break;
+        case 'grades':
+            await loadGrades();
+            renderGrades();
             break;
         case 'department-heads':
             await loadDepartmentHeads();
@@ -143,6 +149,10 @@ async function loadCourses() {
 
 async function loadEnrollments() {
     enrollments = await apiCall('enrollments');
+}
+
+async function loadGrades() {
+    grades = await apiCall('grades');
 }
 
 async function loadDepartmentHeads() {
@@ -266,8 +276,8 @@ function renderStudents() {
                     <div class="field-value">${student.major_name || 'Undeclared'}</div>
                 </div>
                 <div class="card-field">
-                    <div class="field-label">GPA</div>
-                    <div class="field-value">${student.gpa || 'N/A'}</div>
+                    <div class="field-label">GPA (Calculated)</div>
+                    <div class="field-value">${student.gpa ? parseFloat(student.gpa).toFixed(2) : 'No grades yet'}</div>
                 </div>
                 <div class="card-field">
                     <div class="field-label">Enrollment Year</div>
@@ -368,6 +378,54 @@ function renderEnrollments() {
                 <div class="card-field">
                     <div class="field-label">Status</div>
                     <div class="field-value">${enrollment.status}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderGrades() {
+    const container = document.getElementById('grades-list');
+    
+    if (grades.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <div class="empty-state-text">No grades found. Add your first grade!</div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = grades.map(grade => `
+        <div class="data-card">
+            <div class="card-header">
+                <div class="card-title">${grade.student_name} - ${grade.course_code}</div>
+                <div class="card-actions">
+                    <button class="btn btn-small btn-secondary" onclick="editGrade(${grade.grade_id})">Edit</button>
+                    <button class="btn btn-small btn-danger" onclick="deleteGrade(${grade.grade_id})">Delete</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="card-field">
+                    <div class="field-label">Course</div>
+                    <div class="field-value">${grade.course_name}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Grade Value</div>
+                    <div class="field-value">${grade.grade_value}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Grade Type</div>
+                    <div class="field-value">${grade.grade_type}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Date</div>
+                    <div class="field-value">${grade.grade_date}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Description</div>
+                    <div class="field-value">${grade.description || 'N/A'}</div>
                 </div>
             </div>
         </div>
@@ -717,10 +775,6 @@ function showAddStudentForm() {
                     ${deptOptions}
                 </select>
             </div>
-            <div class="form-group">
-                <label>GPA</label>
-                <input type="number" step="0.01" min="0" max="4" name="gpa">
-            </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary">Add Student</button>
@@ -787,10 +841,6 @@ async function editStudent(id) {
                     <option value="">Select Department</option>
                     ${deptOptions}
                 </select>
-            </div>
-            <div class="form-group">
-                <label>GPA</label>
-                <input type="number" step="0.01" min="0" max="4" name="gpa" value="${student.gpa || ''}">
             </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -1277,6 +1327,149 @@ async function deleteDepartmentHead(id) {
         await loadDepartmentHeads();
         renderDepartmentHeads();
         showAlert('Department head removed successfully!', 'success');
+    } catch (error) {
+        // Error already shown by apiCall
+    }
+}
+
+// Grade functions
+function showAddGradeForm() {
+    const enrollmentOptions = enrollments.map(e => 
+        `<option value="${e.enrollment_id}">${e.student_name} - ${e.course_code} (${e.course_name})</option>`
+    ).join('');
+    
+    const form = `
+        <h2>Add Grade</h2>
+        <form onsubmit="submitGrade(event)">
+            <div class="form-group">
+                <label>Enrollment*</label>
+                <select name="enrollment_id" required>
+                    <option value="">Select Enrollment</option>
+                    ${enrollmentOptions}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Grade Value* (1.0 - 5.0)</label>
+                <input type="number" step="0.01" min="1" max="5" name="grade_value" required>
+            </div>
+            <div class="form-group">
+                <label>Grade Type</label>
+                <select name="grade_type">
+                    <option value="Exam">Exam</option>
+                    <option value="Homework">Homework</option>
+                    <option value="Project">Project</option>
+                    <option value="Quiz">Quiz</option>
+                    <option value="Lab">Lab</option>
+                    <option value="Essay">Essay</option>
+                    <option value="Presentation">Presentation</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date*</label>
+                <input type="date" name="grade_date" value="${new Date().toISOString().split('T')[0]}" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" name="description" placeholder="e.g., Midterm exam">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Grade</button>
+            </div>
+        </form>
+    `;
+    showModal(form);
+}
+
+async function submitGrade(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        await apiCall('grades', 'POST', data);
+        closeModal();
+        await loadGrades();
+        renderGrades();
+        showAlert('Grade added successfully!', 'success');
+    } catch (error) {
+        // Error already shown by apiCall
+    }
+}
+
+async function editGrade(id) {
+    const grade = grades.find(g => g.grade_id == id);
+    if (!grade) return;
+    
+    const enrollmentOptions = enrollments.map(e => 
+        `<option value="${e.enrollment_id}" ${e.enrollment_id == grade.enrollment_id ? 'selected' : ''}>${e.student_name} - ${e.course_code} (${e.course_name})</option>`
+    ).join('');
+    
+    const gradeTypes = ['Exam', 'Homework', 'Project', 'Quiz', 'Lab', 'Essay', 'Presentation'];
+    const gradeTypeOptions = gradeTypes.map(type => 
+        `<option value="${type}" ${type === grade.grade_type ? 'selected' : ''}>${type}</option>`
+    ).join('');
+    
+    const form = `
+        <h2>Edit Grade</h2>
+        <form onsubmit="updateGrade(event, ${id})">
+            <div class="form-group">
+                <label>Enrollment*</label>
+                <select name="enrollment_id" required>
+                    ${enrollmentOptions}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Grade Value* (1.0 - 5.0)</label>
+                <input type="number" step="0.01" min="1" max="5" name="grade_value" value="${grade.grade_value}" required>
+            </div>
+            <div class="form-group">
+                <label>Grade Type</label>
+                <select name="grade_type">
+                    ${gradeTypeOptions}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date*</label>
+                <input type="date" name="grade_date" value="${grade.grade_date}" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" name="description" value="${grade.description || ''}">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Grade</button>
+            </div>
+        </form>
+    `;
+    showModal(form);
+}
+
+async function updateGrade(event, id) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        await apiCall(`grades/${id}`, 'PUT', data);
+        closeModal();
+        await loadGrades();
+        renderGrades();
+        showAlert('Grade updated successfully!', 'success');
+    } catch (error) {
+        // Error already shown by apiCall
+    }
+}
+
+async function deleteGrade(id) {
+    if (!confirm('Are you sure you want to delete this grade?')) return;
+    
+    try {
+        await apiCall(`grades/${id}`, 'DELETE');
+        await loadGrades();
+        renderGrades();
+        showAlert('Grade deleted successfully!', 'success');
     } catch (error) {
         // Error already shown by apiCall
     }

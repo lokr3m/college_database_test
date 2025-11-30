@@ -19,6 +19,7 @@
             <button class="nav-btn" data-section="students">Students</button>
             <button class="nav-btn" data-section="courses">Courses</button>
             <button class="nav-btn" data-section="enrollments">Enrollments</button>
+            <button class="nav-btn" data-section="grades">Grades</button>
             <button class="nav-btn" data-section="department-heads">Department Heads</button>
         </nav>
 
@@ -66,6 +67,15 @@
                     <button class="btn btn-primary" onclick="showAddEnrollmentForm()">+ Add Enrollment</button>
                 </div>
                 <div id="enrollments-list" class="data-grid"></div>
+            </section>
+
+            <!-- Grades Section -->
+            <section id="grades-section" class="content-section">
+                <div class="section-header">
+                    <h2>Grades</h2>
+                    <button class="btn btn-primary" onclick="showAddGradeForm()">+ Add Grade</button>
+                </div>
+                <div id="grades-list" class="data-grid"></div>
             </section>
 
             <!-- Department Heads Section -->
