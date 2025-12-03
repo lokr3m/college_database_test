@@ -36,10 +36,15 @@ async function getConnection() {
 }
 
 // ============================================================================
-// DEPARTMENTS ROUTES
+// API ROUTES
+// ============================================================================
+// NOTE: The endpoint path '/backend/api.php' is intentionally used to maintain
+// backward compatibility with the existing frontend (js/app.js) which expects
+// this path. This allows the Node.js backend to be a drop-in replacement for
+// the PHP backend without requiring frontend changes.
 // ============================================================================
 
-// GET all departments
+// GET - Retrieve records
 app.get('/backend/api.php', async (req, res) => {
     const request = req.query.request;
     
@@ -277,8 +282,15 @@ async function handleUpdateDepartment(conn, id, data, res) {
 }
 
 async function handleDeleteDepartment(conn, id, res) {
-    await conn.execute('DELETE FROM Departments WHERE department_id = ?', [id]);
-    res.json({ message: 'Department deleted successfully' });
+    try {
+        const [result] = await conn.execute('DELETE FROM Departments WHERE department_id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Department not found' });
+        }
+        res.json({ message: 'Department deleted successfully' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 }
 
 // ============================================================================
@@ -354,8 +366,15 @@ async function handleUpdateInstructor(conn, id, data, res) {
 }
 
 async function handleDeleteInstructor(conn, id, res) {
-    await conn.execute('DELETE FROM Instructors WHERE instructor_id = ?', [id]);
-    res.json({ message: 'Instructor deleted successfully' });
+    try {
+        const [result] = await conn.execute('DELETE FROM Instructors WHERE instructor_id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Instructor not found' });
+        }
+        res.json({ message: 'Instructor deleted successfully' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 }
 
 // ============================================================================
@@ -439,8 +458,15 @@ async function handleUpdateStudent(conn, id, data, res) {
 }
 
 async function handleDeleteStudent(conn, id, res) {
-    await conn.execute('DELETE FROM Students WHERE student_id = ?', [id]);
-    res.json({ message: 'Student deleted successfully' });
+    try {
+        const [result] = await conn.execute('DELETE FROM Students WHERE student_id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+        res.json({ message: 'Student deleted successfully' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 }
 
 // ============================================================================
@@ -524,8 +550,15 @@ async function handleUpdateCourse(conn, id, data, res) {
 }
 
 async function handleDeleteCourse(conn, id, res) {
-    await conn.execute('DELETE FROM Courses WHERE course_id = ?', [id]);
-    res.json({ message: 'Course deleted successfully' });
+    try {
+        const [result] = await conn.execute('DELETE FROM Courses WHERE course_id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Course not found' });
+        }
+        res.json({ message: 'Course deleted successfully' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 }
 
 // ============================================================================
@@ -604,8 +637,15 @@ async function handleUpdateEnrollment(conn, id, data, res) {
 }
 
 async function handleDeleteEnrollment(conn, id, res) {
-    await conn.execute('DELETE FROM Enrollments WHERE enrollment_id = ?', [id]);
-    res.json({ message: 'Enrollment deleted successfully' });
+    try {
+        const [result] = await conn.execute('DELETE FROM Enrollments WHERE enrollment_id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Enrollment not found' });
+        }
+        res.json({ message: 'Enrollment deleted successfully' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 }
 
 // ============================================================================
@@ -669,8 +709,15 @@ async function handleUpdateDepartmentHead(conn, id, data, res) {
 }
 
 async function handleDeleteDepartmentHead(conn, id, res) {
-    await conn.execute('DELETE FROM DepartmentHeads WHERE department_id = ?', [id]);
-    res.json({ message: 'Department head removed successfully' });
+    try {
+        const [result] = await conn.execute('DELETE FROM DepartmentHeads WHERE department_id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Department head not found' });
+        }
+        res.json({ message: 'Department head removed successfully' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 }
 
 // ============================================================================
@@ -753,8 +800,15 @@ async function handleUpdateGrade(conn, id, data, res) {
 }
 
 async function handleDeleteGrade(conn, id, res) {
-    await conn.execute('DELETE FROM Grades WHERE grade_id = ?', [id]);
-    res.json({ message: 'Grade deleted successfully' });
+    try {
+        const [result] = await conn.execute('DELETE FROM Grades WHERE grade_id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Grade not found' });
+        }
+        res.json({ message: 'Grade deleted successfully' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 }
 
 // ============================================================================
