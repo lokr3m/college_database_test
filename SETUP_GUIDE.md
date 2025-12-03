@@ -3,6 +3,20 @@
 ## Step-by-Step Installation
 
 ### 1. Prerequisites Check
+
+**For Node.js Backend (Recommended):**
+```bash
+# Check MySQL
+mysql --version
+
+# Check Node.js (version 16 or higher recommended)
+node --version
+
+# Check npm
+npm --version
+```
+
+**For PHP Backend (Legacy):**
 ```bash
 # Check MySQL
 mysql --version
@@ -52,7 +66,19 @@ Root kasutajal on ohtlikud õigused, sealhulgas:
 
 **Option A: Development (Not Secure - Only for Testing)**
 
-Edit `backend/config.php`:
+For Node.js backend, edit `backend/config.js`:
+```javascript
+const dbConfig = {
+    host: 'localhost',
+    port: 3306,
+    database: 'college_db',
+    user: 'root',              // Only for development!
+    password: 'your_root_password', // Only for development!
+    // ... other settings
+};
+```
+
+For PHP backend (legacy), edit `backend/config.php`:
 ```php
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
@@ -85,7 +111,19 @@ define('DB_PASS', 'your_root_password'); // Only for development!
    EXIT;
    ```
 
-3. Edit `backend/config.php` to use the secure user:
+3. For Node.js backend, edit `backend/config.js` to use the secure user:
+   ```javascript
+   const dbConfig = {
+       host: 'localhost',
+       port: 3306,
+       database: 'college_db',
+       user: 'college_app',           // Limited privilege user
+       password: 'your_secure_password',  // Strong password
+       // ... other settings
+   };
+   ```
+
+   For PHP backend (legacy), edit `backend/config.php`:
    ```php
    define('DB_HOST', 'localhost');
    define('DB_PORT', '3306');
@@ -100,21 +138,49 @@ define('DB_PASS', 'your_root_password'); // Only for development!
 - ✅ Can only perform CRUD operations (Create, Read, Update, Delete)
 - ✅ Limits damage if credentials are compromised / Piirab kahju, kui volitused on ohustatud
 
-### 4. Start Application
+### 4. Install Dependencies & Start Application
 
-**Development (PHP Built-in Server):**
+**Node.js Backend (Recommended):**
+```bash
+cd college_database/backend
+
+# Install dependencies
+npm install
+
+# Start the server
+npm start
+# or
+node api.js
+```
+
+The server will start on port 8000 by default.
+
+**PHP Backend (Legacy - Development):**
 ```bash
 cd college_database
 php -S localhost:8000
 ```
 
-**Production (Apache):**
+**Production (Apache with PHP):**
 - Copy files to Apache document root (e.g., `/var/www/html/`)
 - Access via `http://your-domain/`
 
-**Production (Nginx):**
+**Production (Nginx with PHP):**
 - Configure Nginx to serve PHP files
 - Point root to project directory
+
+**Production (Node.js with PM2):**
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Start the application
+pm2 start backend/api.js --name "college-api"
+
+# Configure to start on boot
+pm2 startup
+pm2 save
+```
 
 ### 5. Access the Application
 
@@ -126,17 +192,24 @@ Open browser and navigate to:
 
 ### Database Connection Failed
 - Check MySQL is running: `sudo service mysql status`
-- Verify credentials in `backend/config.php`
-- Check PDO MySQL extension: `php -m | grep pdo_mysql`
+- For Node.js: Verify credentials in `backend/config.js`
+- For PHP: Verify credentials in `backend/config.php`
+- For PHP: Check PDO MySQL extension: `php -m | grep pdo_mysql`
 
 ### 500 Internal Server Error
-- Check PHP error logs
+- Check server error logs (Node.js console or PHP error logs)
 - Ensure proper file permissions
-- Verify PHP version compatibility
+- Verify version compatibility (Node.js 16+ or PHP 7.4+)
 
 ### API Not Responding
-- Check `.htaccess` if using Apache
+- For Node.js: Check if server is running (`npm start`)
+- For PHP: Check `.htaccess` if using Apache
 - Verify API endpoint URLs in `js/app.js`
+
+### Node.js Specific Issues
+- Run `npm install` to ensure all dependencies are installed
+- Check for port conflicts (default port 8000)
+- Verify mysql2 package is installed: `npm list mysql2`
 
 ## Default Sample Data
 
@@ -160,4 +233,5 @@ After running `sample_data.sql`, you'll have:
 For issues or questions:
 - Check the main README.md
 - Review database schema in `database/schema.sql`
-- Examine API endpoints in `backend/api.php`
+- For Node.js backend: Examine API endpoints in `backend/api.js`
+- For PHP backend: Examine API endpoints in `backend/api.php`

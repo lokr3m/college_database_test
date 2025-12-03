@@ -192,8 +192,8 @@ Potentsiaalsed funktsioonid tulevaseks arenduseks:
 
 ### Prerequisites
 - MySQL Server (5.7 or higher)
-- PHP (7.4 or higher) with PDO MySQL extension
-- Web server (Apache, Nginx, or PHP built-in server)
+- Node.js (16 or higher) - for Node.js backend (recommended)
+- OR PHP (7.4 or higher) with PDO MySQL extension - for PHP backend (legacy)
 - Modern web browser
 
 ### Installation Steps
@@ -223,6 +223,26 @@ Potentsiaalsed funktsioonid tulevaseks arenduseks:
      ```
 
 3. **Configure the backend**
+   
+   **For Node.js backend (recommended):**
+   - Install dependencies:
+     ```bash
+     cd backend
+     npm install
+     ```
+   - Edit `backend/config.js` and update the database credentials:
+     ```javascript
+     const dbConfig = {
+         host: 'localhost',
+         port: 3306,
+         database: 'college_db',
+         user: 'your_username',
+         password: 'your_password',
+         // ... other settings
+     };
+     ```
+
+   **For PHP backend (legacy):**
    - Edit `backend/config.php` and update the database credentials:
      ```php
      define('DB_HOST', 'localhost');
@@ -234,7 +254,13 @@ Potentsiaalsed funktsioonid tulevaseks arenduseks:
 
 4. **Start the web server**
    
-   Using PHP built-in server (for development):
+   **Using Node.js (recommended):**
+   ```bash
+   cd backend
+   npm start
+   ```
+   
+   **Using PHP built-in server (legacy):**
    ```bash
    php -S localhost:8000
    ```
@@ -273,8 +299,11 @@ college_database/
 │   ├── schema.sql          # Table creation script
 │   └── sample_data.sql     # Sample data for testing
 ├── backend/
-│   ├── config.php          # Database connection configuration
-│   └── api.php             # RESTful API endpoints
+│   ├── api.js              # Node.js RESTful API endpoints (recommended)
+│   ├── config.js           # Node.js database configuration
+│   ├── package.json        # Node.js dependencies
+│   ├── config.php          # PHP database configuration (legacy)
+│   └── api.php             # PHP RESTful API endpoints (legacy)
 ├── css/
 │   └── styles.css          # Application styles
 ├── js/
