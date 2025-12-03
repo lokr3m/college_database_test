@@ -19,3 +19,7 @@ desktop.ini
 # Database config (if contains sensitive info)
 # Uncomment if you want to exclude database credentials
 # backend/config.php
+
+# Node.js
+node_modules/
+package-lock.json
