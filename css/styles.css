@@ -229,6 +229,25 @@ main {
     font-weight: 500;
 }
 
+/* Average Grade / Keskmine hinne - Special Styling */
+.gpa-field {
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.gpa-field .field-label {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.gpa-value.has-gpa {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
 /* Table View */
 .data-table {
     width: 100%;
