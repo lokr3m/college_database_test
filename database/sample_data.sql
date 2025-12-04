@@ -131,11 +131,16 @@ INSERT INTO PaymentMethods (method_name, method_name_et, description, is_active)
 -- This demonstrates the financial history for instructor salaries
 -- See näitab õpetajate palkade finantsajalugu
 --
--- Payment calculation example / Makse arvutamise näide:
---   Gross salary: 7083.33 EUR (85000 / 12 months)
---   Tax rate: ~22% (Estonian income tax example)
---   Tax amount: 1558.33 EUR
---   Net amount: 5525.00 EUR
+-- Payment calculation methodology / Makse arvutamise metoodika:
+--   Monthly gross = Annual salary / 12
+--   Tax amount = gross_amount - net_amount (includes all deductions)
+--   Net amount = Amount actually paid to instructor
+--
+-- Example / Näide:
+--   Annual salary: 85000 EUR
+--   Monthly gross: 7083.33 EUR (85000 / 12)
+--   Tax & deductions: 1558.33 EUR (~22% of gross)
+--   Net payment: 5525.00 EUR (7083.33 - 1558.33)
 --
 -- Note: The triggers will automatically create history records for each insert
 -- Märkus: Trigerid loovad automaatselt ajalookirjed iga sisestuse jaoks

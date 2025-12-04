@@ -438,9 +438,9 @@ Jälgib kõiki palgamakseid, mis on tehtud õpetajatele/õppejõududele. See on 
 | payment_date | DATE | NOT NULL | Date when payment was made | Kuupäev, millal makse tehti |
 | payment_period_start | DATE | NOT NULL | Start of payment period | Makseperioodi algus |
 | payment_period_end | DATE | NOT NULL | End of payment period | Makseperioodi lõpp |
-| gross_amount | DECIMAL(10,2) | NOT NULL | Total salary before deductions | Brutopalk enne mahaarvamisi |
-| tax_amount | DECIMAL(10,2) | NOT NULL, DEFAULT 0.00 | Tax deducted from salary | Palgast maha arvatud maksud |
-| net_amount | DECIMAL(10,2) | NOT NULL | Amount actually paid (gross - tax) | Tegelikult makstud summa |
+| gross_amount | DECIMAL(12,2) | NOT NULL, CHECK >= 0 | Total salary before deductions | Brutopalk enne mahaarvamisi |
+| tax_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0.00, CHECK >= 0 | Tax deducted from salary | Palgast maha arvatud maksud |
+| net_amount | DECIMAL(12,2) | NOT NULL, CHECK >= 0 | Amount actually paid (gross - tax) | Tegelikult makstud summa |
 | method_id | INT | NOT NULL, FOREIGN KEY | How payment was made | Kuidas makse tehti |
 | reference_number | VARCHAR(50) | | Bank reference or transaction ID | Pangaviite number |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'Completed' | Payment status | Makse olek |
