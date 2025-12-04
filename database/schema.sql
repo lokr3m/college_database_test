@@ -8,6 +8,9 @@
 -- Courses = Classes/Lessons = Kursused/Ained (näiteks Programmeerimine I, Matemaatika)
 -- Students = Õpilased/Üliõpilased
 -- Enrollments = Course Registrations = Kursusele registreerimised
+-- PaymentMethods = Makseviisid (näiteks Sularaha, Pangaülekanne, Krediitkaart)
+-- SalaryPayments = Salary Payments = Palgamaksed (õpetajate palgad)
+-- SalaryPaymentHistory = Salary Payment History = Palgamaksete Ajalugu (auditi rada)
 --
 -- TIMESTAMPS:
 -- created_at and updated_at fields are automatically managed by MySQL
@@ -15,6 +18,9 @@
 -- Need väljad haldab MySQL automaatselt ja jälgivad, millal kirjed loodi ja viimati muudeti.
 
 -- Drop tables if they exist (in reverse order of dependencies)
+DROP TABLE IF EXISTS SalaryPaymentHistory;
+DROP TABLE IF EXISTS SalaryPayments;
+DROP TABLE IF EXISTS PaymentMethods;
 DROP TABLE IF EXISTS Grades;
 DROP TABLE IF EXISTS Enrollments;
 DROP TABLE IF EXISTS DepartmentHeads;
@@ -472,3 +478,294 @@ CREATE TABLE Grades (
     INDEX idx_enrollment (enrollment_id),
     INDEX idx_grade_date (grade_date)
 );
+
+-- ============================================================================
+-- PAYMENT METHODS TABLE (Makseviisid / Maksemeetodid)
+-- ============================================================================
+-- Purpose / Eesmärk:
+--   Stores different payment methods used for financial transactions.
+--   This includes cash, credit card, bank transfer, etc.
+--   Salvestab erinevaid makseviise, mida kasutatakse finantstehingutes.
+--   See hõlmab sularaha, krediitkaarte, pangaülekandeid jne.
+--
+-- Fields / Väljad:
+--   - method_id: Unique identifier for the payment method / Makseviisi unikaalne identifikaator
+--   - method_name: Name of the payment method (e.g., "Cash", "Credit Card") / Makseviisi nimi
+--   - method_name_et: Estonian name of the payment method / Makseviisi nimi eesti keeles
+--   - description: Optional description of the payment method / Makseviisi valikuline kirjeldus
+--   - is_active: Whether this payment method is currently active / Kas see makseviis on hetkel aktiivne
+--
+-- Examples / Näited:
+--   - Cash / Sularaha
+--   - Credit Card / Krediitkaart
+--   - Bank Transfer / Pangaülekanne
+--   - Debit Card / Deebetkaart
+--
+-- Business Rules / Ärireeglid:
+--   - Payment methods can be deactivated but not deleted (for historical records)
+--   - Makseviise saab deaktiveerida, kuid mitte kustutada (ajalooliste kirjete jaoks)
+-- ============================================================================
+CREATE TABLE PaymentMethods (
+    method_id INT PRIMARY KEY AUTO_INCREMENT,
+    method_name VARCHAR(50) NOT NULL UNIQUE,
+    method_name_et VARCHAR(50) NOT NULL,
+    description VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- SALARY PAYMENTS TABLE (Palgamaksed / Palgatehingud)
+-- ============================================================================
+-- Purpose / Eesmärk:
+--   Tracks all salary payments made to instructors/teachers.
+--   This is the core financial services table for the college database.
+--   Jälgib kõiki palgamakseid, mis on tehtud õpetajatele/õppejõududele.
+--   See on kolledži andmebaasi peamine finantsteenuste tabel.
+--
+-- Fields / Väljad:
+--   - payment_id: Unique identifier for the payment / Makse unikaalne identifikaator
+--   - instructor_id: Instructor receiving the payment / Õpetaja, kes saab makse
+--   - payment_date: Date when payment was made / Kuupäev, millal makse tehti
+--   - payment_period_start: Start of the payment period (e.g., first day of month) / Makseperioodi algus
+--   - payment_period_end: End of the payment period (e.g., last day of month) / Makseperioodi lõpp
+--   - gross_amount: Total salary before deductions / Brutopalk enne mahaarvamisi
+--   - tax_amount: Tax deducted from salary / Palgast maha arvatud maksud
+--   - net_amount: Amount actually paid (gross - tax) / Tegelikult makstud summa (bruto - maksud)
+--   - method_id: How the payment was made (cash, bank transfer, etc.) / Kuidas makse tehti
+--   - reference_number: Bank reference or transaction ID / Pangaviite number või tehingu ID
+--   - status: Payment status (Pending, Completed, Cancelled, Failed) / Makse olek
+--   - notes: Optional notes about the payment / Valikulised märkused makse kohta
+--
+-- Payment Statuses / Makse olekud:
+--   - Pending (Ootel): Payment is scheduled but not yet processed
+--   - Completed (Lõpetatud): Payment has been successfully processed
+--   - Cancelled (Tühistatud): Payment was cancelled before processing
+--   - Failed (Ebaõnnestunud): Payment processing failed
+--
+-- Business Rules / Ärireeglid:
+--   - Each payment is associated with exactly ONE instructor
+--   - Multiple payments can be made to the same instructor (monthly salaries)
+--   - Payment period defines the work period being compensated
+--   - Net amount should equal gross amount minus tax amount
+--   - Iga makse on seotud täpselt ÜHE õpetajaga
+--   - Samale õpetajale võib teha mitu makset (igakuised palgad)
+--   - Makseperiood määratleb hüvitatava tööperioodi
+--   - Netosumma peaks võrduma brutosummast miinus maksusumma
+--
+-- Financial History / Finantsajalugu:
+--   This table provides a complete record of all salary payments, enabling:
+--   See tabel pakub täielikku ülevaadet kõikidest palgamaksetest, võimaldades:
+--   - Salary expense tracking / Palkulude jälgimine
+--   - Payment method analysis / Makseviisi analüüs
+--   - Employee payment history / Töötaja makseajalugu
+--   - Tax reporting / Maksuaruandlus
+--   - Budget forecasting / Eelarve prognoosimine
+-- ============================================================================
+CREATE TABLE SalaryPayments (
+    payment_id INT PRIMARY KEY AUTO_INCREMENT,
+    instructor_id INT NOT NULL,
+    payment_date DATE NOT NULL,
+    payment_period_start DATE NOT NULL,
+    payment_period_end DATE NOT NULL,
+    gross_amount DECIMAL(10, 2) NOT NULL,
+    tax_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    net_amount DECIMAL(10, 2) NOT NULL,
+    method_id INT NOT NULL,
+    reference_number VARCHAR(50),
+    status VARCHAR(20) NOT NULL DEFAULT 'Completed',
+    notes VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (instructor_id) REFERENCES Instructors(instructor_id) ON DELETE CASCADE,
+    FOREIGN KEY (method_id) REFERENCES PaymentMethods(method_id) ON DELETE RESTRICT,
+    INDEX idx_instructor (instructor_id),
+    INDEX idx_payment_date (payment_date),
+    INDEX idx_status (status),
+    INDEX idx_method (method_id),
+    CHECK (net_amount <= gross_amount),
+    CHECK (status IN ('Pending', 'Completed', 'Cancelled', 'Failed'))
+);
+
+-- ============================================================================
+-- SALARY PAYMENT HISTORY TABLE (Palgamaksete Ajalugu)
+-- ============================================================================
+-- Purpose / Eesmärk:
+--   Tracks ALL changes made to salary payment records.
+--   This is an AUDIT/HISTORY table that preserves the complete history of
+--   any modifications to salary payments - fulfilling the requirement for
+--   at least one table with history tracking.
+--   
+--   Jälgib KÕIKI muudatusi, mis on tehtud palgamaksete kirjetele.
+--   See on AUDIT/AJALUGU tabel, mis säilitab täieliku ajaloo kõikidest
+--   muudatustest palgamaksetes - täites nõuet, et vähemalt ühel tabelil
+--   peab olema ajalugu.
+--
+-- How This Table Works / Kuidas see tabel töötab:
+--   [TRIGGER-BASED] This table is populated by database triggers that fire
+--   whenever a SalaryPayments record is inserted, updated, or deleted.
+--   See tabel täidetakse andmebaasi trigertega, mis käivituvad iga kord,
+--   kui SalaryPayments kirjet lisatakse, uuendatakse või kustutatakse.
+--
+--   [INSERT] When a new payment is created:
+--     - A history record is created with action_type = 'INSERT'
+--     - old_* fields are NULL (no previous values)
+--     - new_* fields contain the inserted values
+--     Kui luuakse uus makse:
+--     - Luuakse ajalookirje action_type = 'INSERT'
+--     - old_* väljad on NULL (varasemaid väärtusi pole)
+--     - new_* väljad sisaldavad sisestatud väärtusi
+--
+--   [UPDATE] When a payment is modified:
+--     - A history record is created with action_type = 'UPDATE'
+--     - old_* fields contain the values BEFORE the change
+--     - new_* fields contain the values AFTER the change
+--     Kui makset muudetakse:
+--     - Luuakse ajalookirje action_type = 'UPDATE'
+--     - old_* väljad sisaldavad väärtusi ENNE muudatust
+--     - new_* väljad sisaldavad väärtusi PÄRAST muudatust
+--
+--   [DELETE] When a payment is deleted:
+--     - A history record is created with action_type = 'DELETE'
+--     - old_* fields contain the deleted values
+--     - new_* fields are NULL (no new values)
+--     Kui makse kustutatakse:
+--     - Luuakse ajalookirje action_type = 'DELETE'
+--     - old_* väljad sisaldavad kustutatud väärtusi
+--     - new_* väljad on NULL (uusi väärtusi pole)
+--
+-- Fields / Väljad:
+--   - history_id: Unique identifier for the history record / Ajalookirje unikaalne identifikaator
+--   - payment_id: Reference to the original payment (may be deleted) / Viide algsele maksele
+--   - action_type: Type of change (INSERT, UPDATE, DELETE) / Muudatuse tüüp
+--   - action_timestamp: When the change occurred / Millal muudatus toimus
+--   - action_user: Who made the change (if available) / Kes tegi muudatuse (kui saadaval)
+--   - old_* fields: Values BEFORE the change / Väärtused ENNE muudatust
+--   - new_* fields: Values AFTER the change / Väärtused PÄRAST muudatust
+--
+-- Use Cases / Kasutusjuhud:
+--   - Audit trail for financial compliance / Auditi rada finantsilise vastavuse jaoks
+--   - Tracking payment corrections / Maksekorrigeerimiste jälgimine
+--   - Detecting unauthorized changes / Volitamata muudatuste tuvastamine
+--   - Recovering accidentally deleted payments / Kogemata kustutatud maksete taastamine
+--   - Historical salary analysis / Ajalooline palgaanalüüs
+--
+-- Business Rules / Ärireeglid:
+--   - History records are NEVER deleted (permanent audit trail)
+--   - History records are NEVER modified after creation
+--   - Each change to SalaryPayments creates exactly ONE history record
+--   - Ajalookirjeid EI KUSTUTATA kunagi (püsiv auditi rada)
+--   - Ajalookirjeid EI MUUDETA pärast loomist
+--   - Iga muudatus SalaryPayments tabelis loob täpselt ÜHE ajalookirje
+-- ============================================================================
+CREATE TABLE SalaryPaymentHistory (
+    history_id INT PRIMARY KEY AUTO_INCREMENT,
+    payment_id INT NOT NULL,
+    action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+    action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    action_user VARCHAR(100),
+    old_instructor_id INT,
+    old_payment_date DATE,
+    old_payment_period_start DATE,
+    old_payment_period_end DATE,
+    old_gross_amount DECIMAL(10, 2),
+    old_tax_amount DECIMAL(10, 2),
+    old_net_amount DECIMAL(10, 2),
+    old_method_id INT,
+    old_reference_number VARCHAR(50),
+    old_status VARCHAR(20),
+    old_notes VARCHAR(500),
+    new_instructor_id INT,
+    new_payment_date DATE,
+    new_payment_period_start DATE,
+    new_payment_period_end DATE,
+    new_gross_amount DECIMAL(10, 2),
+    new_tax_amount DECIMAL(10, 2),
+    new_net_amount DECIMAL(10, 2),
+    new_method_id INT,
+    new_reference_number VARCHAR(50),
+    new_status VARCHAR(20),
+    new_notes VARCHAR(500),
+    INDEX idx_payment (payment_id),
+    INDEX idx_action_type (action_type),
+    INDEX idx_action_timestamp (action_timestamp)
+);
+
+-- ============================================================================
+-- TRIGGERS FOR SALARY PAYMENT HISTORY (Trigerid palgamaksete ajaloo jaoks)
+-- ============================================================================
+-- These triggers automatically record all changes to SalaryPayments table
+-- Need trigerid salvestavad automaatselt kõik muudatused SalaryPayments tabelis
+
+DELIMITER //
+
+-- Trigger for INSERT operations / Triger INSERT operatsioonide jaoks
+CREATE TRIGGER trg_salary_payment_insert
+AFTER INSERT ON SalaryPayments
+FOR EACH ROW
+BEGIN
+    INSERT INTO SalaryPaymentHistory (
+        payment_id, action_type, action_user,
+        new_instructor_id, new_payment_date, new_payment_period_start,
+        new_payment_period_end, new_gross_amount, new_tax_amount,
+        new_net_amount, new_method_id, new_reference_number,
+        new_status, new_notes
+    ) VALUES (
+        NEW.payment_id, 'INSERT', CURRENT_USER(),
+        NEW.instructor_id, NEW.payment_date, NEW.payment_period_start,
+        NEW.payment_period_end, NEW.gross_amount, NEW.tax_amount,
+        NEW.net_amount, NEW.method_id, NEW.reference_number,
+        NEW.status, NEW.notes
+    );
+END//
+
+-- Trigger for UPDATE operations / Triger UPDATE operatsioonide jaoks
+CREATE TRIGGER trg_salary_payment_update
+AFTER UPDATE ON SalaryPayments
+FOR EACH ROW
+BEGIN
+    INSERT INTO SalaryPaymentHistory (
+        payment_id, action_type, action_user,
+        old_instructor_id, old_payment_date, old_payment_period_start,
+        old_payment_period_end, old_gross_amount, old_tax_amount,
+        old_net_amount, old_method_id, old_reference_number,
+        old_status, old_notes,
+        new_instructor_id, new_payment_date, new_payment_period_start,
+        new_payment_period_end, new_gross_amount, new_tax_amount,
+        new_net_amount, new_method_id, new_reference_number,
+        new_status, new_notes
+    ) VALUES (
+        NEW.payment_id, 'UPDATE', CURRENT_USER(),
+        OLD.instructor_id, OLD.payment_date, OLD.payment_period_start,
+        OLD.payment_period_end, OLD.gross_amount, OLD.tax_amount,
+        OLD.net_amount, OLD.method_id, OLD.reference_number,
+        OLD.status, OLD.notes,
+        NEW.instructor_id, NEW.payment_date, NEW.payment_period_start,
+        NEW.payment_period_end, NEW.gross_amount, NEW.tax_amount,
+        NEW.net_amount, NEW.method_id, NEW.reference_number,
+        NEW.status, NEW.notes
+    );
+END//
+
+-- Trigger for DELETE operations / Triger DELETE operatsioonide jaoks
+CREATE TRIGGER trg_salary_payment_delete
+AFTER DELETE ON SalaryPayments
+FOR EACH ROW
+BEGIN
+    INSERT INTO SalaryPaymentHistory (
+        payment_id, action_type, action_user,
+        old_instructor_id, old_payment_date, old_payment_period_start,
+        old_payment_period_end, old_gross_amount, old_tax_amount,
+        old_net_amount, old_method_id, old_reference_number,
+        old_status, old_notes
+    ) VALUES (
+        OLD.payment_id, 'DELETE', CURRENT_USER(),
+        OLD.instructor_id, OLD.payment_date, OLD.payment_period_start,
+        OLD.payment_period_end, OLD.gross_amount, OLD.tax_amount,
+        OLD.net_amount, OLD.method_id, OLD.reference_number,
+        OLD.status, OLD.notes
+    );
+END//
+
+DELIMITER ;

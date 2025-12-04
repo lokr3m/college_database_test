@@ -17,36 +17,36 @@ Kõik tabelid sisaldavad `created_at` ja `updated_at` välju, mida MySQL haldab 
 ## Entity Relationship Overview
 
 ```
-┌─────────────────┐         ┌─────────────────┐
-│   Departments   │◄────┐   │   Instructors   │
-│                 │     │   │                 │
-│ PK: dept_id     │     └───│ FK: dept_id     │
-│                 │         │ PK: inst_id     │
-└────────┬────────┘         └────────┬────────┘
-         │                           │
-         │ 1:1                       │ 1:1
-         │                           │
-         ▼                           ▼
-┌─────────────────┐         ┌─────────────────┐
-│ DepartmentHeads │         │     Courses     │
-│                 │         │                 │
-│ PK: dept_id     │         │ PK: course_id   │
-│ FK: inst_id     │◄────────│ FK: dept_id     │
-└─────────────────┘    1:M  │ FK: inst_id     │
-                             └────────┬────────┘
-                                      │
-                                      │ M:N
-                                      │
-                                      ▼
-                             ┌─────────────────┐
-                             │   Enrollments   │
-                             │                 │
-                             │ PK: enroll_id   │
-                             │ FK: student_id  │◄────┐
-                             │ FK: course_id   │     │
-                             └────────┬────────┘     │
+┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│   Departments   │◄────┐   │   Instructors   │────────►│ SalaryPayments  │
+│                 │     │   │                 │   1:M   │                 │
+│ PK: dept_id     │     └───│ FK: dept_id     │         │ PK: payment_id  │
+│                 │         │ PK: inst_id     │         │ FK: inst_id     │
+└────────┬────────┘         └────────┬────────┘         │ FK: method_id   │
+         │                           │                   └────────┬────────┘
+         │ 1:1                       │ 1:M                        │
+         │                           │                            │ 1:M
+         ▼                           ▼                            ▼
+┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│ DepartmentHeads │         │     Courses     │         │SalaryPayHistory │
+│                 │         │                 │         │                 │
+│ PK: dept_id     │         │ PK: course_id   │         │ PK: history_id  │
+│ FK: inst_id     │◄────────│ FK: dept_id     │         │ FK: payment_id  │
+└─────────────────┘    1:M  │ FK: inst_id     │         └─────────────────┘
+                             └────────┬────────┘                  ▲
+                                      │                           │
+                                      │ M:N          ┌────────────┘
                                       │              │
-                                      │ 1:M   ┌──────┴────────┐
+                                      ▼              │ Triggers
+                             ┌─────────────────┐     │
+                             │   Enrollments   │     │
+                             │                 │     │
+                             │ PK: enroll_id   │     │
+                             │ FK: student_id  │◄────┼────┐
+                             │ FK: course_id   │     │    │
+                             └────────┬────────┘     │    │
+                                      │              │    │
+                                      │ 1:M   ┌──────┴────┴───┐
                                       │       │   Students    │
                                       ▼       │               │
                              ┌─────────────────┐ PK: stud_id   │
@@ -55,10 +55,20 @@ Kõik tabelid sisaldavad `created_at` ja `updated_at` välju, mida MySQL haldab 
                              │ PK: grade_id    └───────────────┘
                              │ FK: enroll_id   │
                              └─────────────────┘
+
+┌─────────────────┐
+│ PaymentMethods  │◄─────────── Referenced by SalaryPayments
+│                 │
+│ PK: method_id   │
+│ method_name     │
+└─────────────────┘
 ```
 
 **Note / Märkus**: GPA (Grade Point Average) is calculated from the Grades table as the average of all grade values.
 Keskmine hinne arvutatakse Hinnete tabelist kõigi hindeväärtuste keskmisena.
+
+**Financial Services / Finantsteenused**: SalaryPayments table tracks instructor salary payments with full history tracking via SalaryPaymentHistory table.
+Palgamaksete tabel jälgib õpetajate palgamakseid täieliku ajaloo jälgimisega SalaryPaymentHistory tabeli kaudu.
 
 ## Tables Details
 
@@ -390,6 +400,125 @@ Salvestab üliõilaste individuaalseid hindeid nende registreeritud kursustes. K
 
 ---
 
+### 8. PaymentMethods (Makseviisid / Maksemeetodid)
+**Purpose / Eesmärk**: Stores different payment methods used for financial transactions (salary payments)
+Salvestab erinevaid makseviise, mida kasutatakse finantstehingutes (palgamaksed)
+
+| Column | Type | Constraints | Description | Kirjeldus (Estonian) |
+|--------|------|-------------|-------------|----------------------|
+| method_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| method_name | VARCHAR(50) | NOT NULL, UNIQUE | Payment method name (e.g., "Cash", "Bank Transfer") | Makseviisi nimi |
+| method_name_et | VARCHAR(50) | NOT NULL | Estonian name of the payment method | Makseviisi nimi eesti keeles |
+| description | VARCHAR(255) | | Optional description | Valikuline kirjeldus |
+| is_active | BOOLEAN | DEFAULT TRUE | Whether method is currently available | Kas meetod on hetkel saadaval |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
+| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+
+**Available Payment Methods / Saadaolevad makseviisid**:
+- Bank Transfer / Pangaülekanne - Electronic transfer to bank account
+- Cash / Sularaha - Cash payment
+- Credit Card / Krediitkaart - Payment via credit card
+- Debit Card / Deebetkaart - Payment via debit card
+- Check / Tšekk - Payment by check (inactive)
+
+**Business Rules / Ärireeglid**:
+- Payment methods can be deactivated but not deleted (for historical records)
+- Makseviise saab deaktiveerida, kuid mitte kustutada (ajalooliste kirjete jaoks)
+
+---
+
+### 9. SalaryPayments (Palgamaksed / Palgatehingud)
+**Purpose / Eesmärk**: Tracks all salary payments made to instructors/teachers. This is the core financial services table.
+Jälgib kõiki palgamakseid, mis on tehtud õpetajatele/õppejõududele. See on peamine finantsteenuste tabel.
+
+| Column | Type | Constraints | Description | Kirjeldus (Estonian) |
+|--------|------|-------------|-------------|----------------------|
+| payment_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| instructor_id | INT | NOT NULL, FOREIGN KEY | Instructor receiving payment | Õpetaja, kes saab makse |
+| payment_date | DATE | NOT NULL | Date when payment was made | Kuupäev, millal makse tehti |
+| payment_period_start | DATE | NOT NULL | Start of payment period | Makseperioodi algus |
+| payment_period_end | DATE | NOT NULL | End of payment period | Makseperioodi lõpp |
+| gross_amount | DECIMAL(10,2) | NOT NULL | Total salary before deductions | Brutopalk enne mahaarvamisi |
+| tax_amount | DECIMAL(10,2) | NOT NULL, DEFAULT 0.00 | Tax deducted from salary | Palgast maha arvatud maksud |
+| net_amount | DECIMAL(10,2) | NOT NULL | Amount actually paid (gross - tax) | Tegelikult makstud summa |
+| method_id | INT | NOT NULL, FOREIGN KEY | How payment was made | Kuidas makse tehti |
+| reference_number | VARCHAR(50) | | Bank reference or transaction ID | Pangaviite number |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'Completed' | Payment status | Makse olek |
+| notes | VARCHAR(500) | | Optional notes about payment | Valikulised märkused |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
+| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+
+**Payment Statuses / Makse olekud**:
+- **Pending** (Ootel): Payment is scheduled but not yet processed
+- **Completed** (Lõpetatud): Payment has been successfully processed
+- **Cancelled** (Tühistatud): Payment was cancelled before processing
+- **Failed** (Ebaõnnestunud): Payment processing failed
+
+**Relationships / Seosed**:
+- Many-to-One with Instructors (mitu-ühele õpetajatega)
+- Many-to-One with PaymentMethods (mitu-ühele makseviisidega)
+
+**Business Rules / Ärireeglid**:
+- Each payment is associated with exactly ONE instructor / Iga makse on seotud täpselt ÜHE õpetajaga
+- Multiple payments can be made to the same instructor / Samale õpetajale võib teha mitu makset
+- Net amount must be less than or equal to gross amount / Netosumma peab olema väiksem või võrdne brutosummaga
+
+**Financial History Features / Finantsajaloo funktsioonid**:
+- Salary expense tracking / Palkulude jälgimine
+- Payment method analysis / Makseviisi analüüs
+- Employee payment history / Töötaja makseajalugu
+- Tax reporting / Maksuaruandlus
+- Budget forecasting / Eelarve prognoosimine
+
+---
+
+### 10. SalaryPaymentHistory (Palgamaksete Ajalugu)
+**Purpose / Eesmärk**: Tracks ALL changes made to salary payment records. This is an AUDIT/HISTORY table that preserves the complete history of any modifications to salary payments.
+Jälgib KÕIKI muudatusi palgamaksete kirjetes. See on AUDIT/AJALUGU tabel, mis säilitab täieliku ajaloo kõikidest muudatustest.
+
+**[IMPORTANT] This table fulfills the requirement for at least one table with history tracking!**
+**[TÄHTIS] See tabel täidab nõuet, et vähemalt ühel tabelil peab olema ajalugu!**
+
+| Column | Type | Constraints | Description | Kirjeldus (Estonian) |
+|--------|------|-------------|-------------|----------------------|
+| history_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| payment_id | INT | NOT NULL | Reference to original payment | Viide algsele maksele |
+| action_type | ENUM | NOT NULL | Type of change (INSERT, UPDATE, DELETE) | Muudatuse tüüp |
+| action_timestamp | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | When the change occurred | Millal muudatus toimus |
+| action_user | VARCHAR(100) | | Who made the change | Kes tegi muudatuse |
+| old_* fields | various | | Values BEFORE the change | Väärtused ENNE muudatust |
+| new_* fields | various | | Values AFTER the change | Väärtused PÄRAST muudatust |
+
+**How This Table Works / Kuidas see tabel töötab**:
+
+This table is populated by database triggers that fire whenever a SalaryPayments record is modified:
+See tabel täidetakse andmebaasi trigertega, mis käivituvad iga kord, kui SalaryPayments kirjet muudetakse:
+
+| Action | old_* fields | new_* fields | Description |
+|--------|-------------|--------------|-------------|
+| INSERT | NULL | Inserted values | New payment created / Uus makse loodud |
+| UPDATE | Values before change | Values after change | Payment modified / Makset muudeti |
+| DELETE | Deleted values | NULL | Payment deleted / Makse kustutatud |
+
+**Use Cases / Kasutusjuhud**:
+- Audit trail for financial compliance / Auditi rada finantsilise vastavuse jaoks
+- Tracking payment corrections / Maksekorrigeerimiste jälgimine
+- Detecting unauthorized changes / Volitamata muudatuste tuvastamine
+- Recovering accidentally deleted payments / Kogemata kustutatud maksete taastamine
+- Historical salary analysis / Ajalooline palgaanalüüs
+
+**Business Rules / Ärireeglid**:
+- History records are NEVER deleted (permanent audit trail) / Ajalookirjeid EI KUSTUTATA kunagi
+- History records are NEVER modified after creation / Ajalookirjeid EI MUUDETA pärast loomist
+- Each change to SalaryPayments creates exactly ONE history record / Iga muudatus loob täpselt ÜHE ajalookirje
+
+**Triggers / Trigerid**:
+- `trg_salary_payment_insert`: Records new payment insertions
+- `trg_salary_payment_update`: Records payment modifications
+- `trg_salary_payment_delete`: Records payment deletions
+
+---
+
 ## Indexes
 
 For optimal query performance, the following indexes are created:
@@ -400,6 +529,9 @@ For optimal query performance, the following indexes are created:
 - **Students**: `email` (UNIQUE), `major_department_id`
 - **Enrollments**: `student_id`, `course_id`, UNIQUE(student_id, course_id)
 - **Grades**: `enrollment_id`, `grade_date`
+- **PaymentMethods**: `method_name` (UNIQUE)
+- **SalaryPayments**: `instructor_id`, `payment_date`, `status`, `method_id`
+- **SalaryPaymentHistory**: `payment_id`, `action_type`, `action_timestamp`
 
 ## Cascade Rules
 
@@ -407,6 +539,8 @@ For optimal query performance, the following indexes are created:
 - **ON DELETE SET NULL**: Deleting an instructor sets course instructor_id to NULL
 - **ON DELETE CASCADE**: Deleting a student or course removes associated enrollments
 - **ON DELETE CASCADE**: Deleting an enrollment removes associated grades
+- **ON DELETE CASCADE**: Deleting an instructor removes associated salary payments
+- **ON DELETE RESTRICT**: Payment methods cannot be deleted if used in salary payments
 
 ## Business Rules Enforced by Schema
 
@@ -417,6 +551,9 @@ For optimal query performance, the following indexes are created:
 5. [ENFORCED] Students can enroll in multiple courses (Many-to-Many via Enrollments)
 6. [ENFORCED] Courses can have multiple students (Many-to-Many via Enrollments)
 7. [ENFORCED] No duplicate enrollments (UNIQUE constraint on student_id + course_id)
+8. [ENFORCED] Salary payment net amount cannot exceed gross amount (CHECK constraint)
+9. [ENFORCED] Salary payment history is automatically recorded via triggers
+10. [ENFORCED] Payment method names must be unique
 
 ## Security Best Practices / Turvalisuse Parimad Tavad
 

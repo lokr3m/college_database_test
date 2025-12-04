@@ -110,3 +110,82 @@ INSERT INTO Grades (enrollment_id, grade_value, grade_type, grade_date, descript
 (15, 5.00, 'Exam', '2024-10-18', 'Calculus midterm'),
 (15, 5.00, 'Homework', '2024-09-22', 'Problem set 1'),
 (15, 4.50, 'Quiz', '2024-10-01', 'Weekly quiz');
+
+-- ============================================================================
+-- PAYMENT METHODS (Makseviisid)
+-- ============================================================================
+-- Insert payment methods / Sisesta makseviisid
+-- These are the available methods for paying instructor salaries
+-- Need on saadaolevad meetodid õpetajate palkade maksmiseks
+INSERT INTO PaymentMethods (method_name, method_name_et, description, is_active) VALUES
+('Bank Transfer', 'Pangaülekanne', 'Electronic transfer to bank account / Elektrooniline ülekanne pangakontole', TRUE),
+('Cash', 'Sularaha', 'Cash payment / Sularahamakse', TRUE),
+('Credit Card', 'Krediitkaart', 'Payment via credit card / Makse krediitkaardiga', TRUE),
+('Debit Card', 'Deebetkaart', 'Payment via debit card / Makse deebetkaardiga', TRUE),
+('Check', 'Tšekk', 'Payment by check / Makse tšekiga', FALSE);
+
+-- ============================================================================
+-- SALARY PAYMENTS (Palgamaksed)
+-- ============================================================================
+-- Insert salary payment records / Sisesta palgamaksete kirjed
+-- This demonstrates the financial history for instructor salaries
+-- See näitab õpetajate palkade finantsajalugu
+--
+-- Payment calculation example / Makse arvutamise näide:
+--   Gross salary: 7083.33 EUR (85000 / 12 months)
+--   Tax rate: ~22% (Estonian income tax example)
+--   Tax amount: 1558.33 EUR
+--   Net amount: 5525.00 EUR
+--
+-- Note: The triggers will automatically create history records for each insert
+-- Märkus: Trigerid loovad automaatselt ajalookirjed iga sisestuse jaoks
+
+INSERT INTO SalaryPayments (instructor_id, payment_date, payment_period_start, payment_period_end, gross_amount, tax_amount, net_amount, method_id, reference_number, status, notes) VALUES
+-- John Smith payments (instructor_id = 1, salary = 85000/year = ~7083.33/month)
+(1, '2024-09-30', '2024-09-01', '2024-09-30', 7083.33, 1558.33, 5525.00, 1, 'SAL-2024-09-001', 'Completed', 'September 2024 salary / Septembri 2024 palk'),
+(1, '2024-10-31', '2024-10-01', '2024-10-31', 7083.33, 1558.33, 5525.00, 1, 'SAL-2024-10-001', 'Completed', 'October 2024 salary / Oktoobri 2024 palk'),
+(1, '2024-11-30', '2024-11-01', '2024-11-30', 7083.33, 1558.33, 5525.00, 1, 'SAL-2024-11-001', 'Completed', 'November 2024 salary / Novembri 2024 palk'),
+
+-- Emily Johnson payments (instructor_id = 2, salary = 78000/year = ~6500/month)
+(2, '2024-09-30', '2024-09-01', '2024-09-30', 6500.00, 1430.00, 5070.00, 1, 'SAL-2024-09-002', 'Completed', 'September 2024 salary'),
+(2, '2024-10-31', '2024-10-01', '2024-10-31', 6500.00, 1430.00, 5070.00, 1, 'SAL-2024-10-002', 'Completed', 'October 2024 salary'),
+(2, '2024-11-30', '2024-11-01', '2024-11-30', 6500.00, 1430.00, 5070.00, 1, 'SAL-2024-11-002', 'Completed', 'November 2024 salary'),
+
+-- Michael Williams payments (instructor_id = 3, salary = 82000/year = ~6833.33/month)
+(3, '2024-09-30', '2024-09-01', '2024-09-30', 6833.33, 1503.33, 5330.00, 1, 'SAL-2024-09-003', 'Completed', 'September 2024 salary'),
+(3, '2024-10-31', '2024-10-01', '2024-10-31', 6833.33, 1503.33, 5330.00, 1, 'SAL-2024-10-003', 'Completed', 'October 2024 salary'),
+(3, '2024-11-30', '2024-11-01', '2024-11-30', 6833.33, 1503.33, 5330.00, 1, 'SAL-2024-11-003', 'Completed', 'November 2024 salary'),
+
+-- Sarah Brown payments (instructor_id = 4, salary = 75000/year = ~6250/month)
+(4, '2024-09-30', '2024-09-01', '2024-09-30', 6250.00, 1375.00, 4875.00, 1, 'SAL-2024-09-004', 'Completed', 'September 2024 salary'),
+(4, '2024-10-31', '2024-10-01', '2024-10-31', 6250.00, 1375.00, 4875.00, 1, 'SAL-2024-10-004', 'Completed', 'October 2024 salary'),
+(4, '2024-11-30', '2024-11-01', '2024-11-30', 6250.00, 1375.00, 4875.00, 1, 'SAL-2024-11-004', 'Completed', 'November 2024 salary'),
+
+-- David Jones payments (instructor_id = 5, salary = 88000/year = ~7333.33/month)
+(5, '2024-09-30', '2024-09-01', '2024-09-30', 7333.33, 1613.33, 5720.00, 1, 'SAL-2024-09-005', 'Completed', 'September 2024 salary'),
+(5, '2024-10-31', '2024-10-01', '2024-10-31', 7333.33, 1613.33, 5720.00, 1, 'SAL-2024-10-005', 'Completed', 'October 2024 salary'),
+(5, '2024-11-30', '2024-11-01', '2024-11-30', 7333.33, 1613.33, 5720.00, 1, 'SAL-2024-11-005', 'Completed', 'November 2024 salary'),
+
+-- Jennifer Garcia payments (instructor_id = 6, salary = 72000/year = 6000/month)
+(6, '2024-09-30', '2024-09-01', '2024-09-30', 6000.00, 1320.00, 4680.00, 1, 'SAL-2024-09-006', 'Completed', 'September 2024 salary'),
+(6, '2024-10-31', '2024-10-01', '2024-10-31', 6000.00, 1320.00, 4680.00, 1, 'SAL-2024-10-006', 'Completed', 'October 2024 salary'),
+(6, '2024-11-30', '2024-11-01', '2024-11-30', 6000.00, 1320.00, 4680.00, 1, 'SAL-2024-11-006', 'Completed', 'November 2024 salary'),
+
+-- Robert Martinez payments (instructor_id = 7, salary = 95000/year = ~7916.67/month)
+(7, '2024-09-30', '2024-09-01', '2024-09-30', 7916.67, 1741.67, 6175.00, 1, 'SAL-2024-09-007', 'Completed', 'September 2024 salary'),
+(7, '2024-10-31', '2024-10-01', '2024-10-31', 7916.67, 1741.67, 6175.00, 1, 'SAL-2024-10-007', 'Completed', 'October 2024 salary'),
+(7, '2024-11-30', '2024-11-01', '2024-11-30', 7916.67, 1741.67, 6175.00, 1, 'SAL-2024-11-007', 'Completed', 'November 2024 salary'),
+
+-- Lisa Anderson payments (instructor_id = 8, salary = 87000/year = 7250/month)
+(8, '2024-09-30', '2024-09-01', '2024-09-30', 7250.00, 1595.00, 5655.00, 1, 'SAL-2024-09-008', 'Completed', 'September 2024 salary'),
+(8, '2024-10-31', '2024-10-01', '2024-10-31', 7250.00, 1595.00, 5655.00, 1, 'SAL-2024-10-008', 'Completed', 'October 2024 salary'),
+(8, '2024-11-30', '2024-11-01', '2024-11-30', 7250.00, 1595.00, 5655.00, 1, 'SAL-2024-11-008', 'Completed', 'November 2024 salary'),
+
+-- Example of a pending payment for December / Näide ootel maksest detsembriks
+(1, '2024-12-31', '2024-12-01', '2024-12-31', 7083.33, 1558.33, 5525.00, 1, 'SAL-2024-12-001', 'Pending', 'December 2024 salary - scheduled / Detsembri 2024 palk - planeeritud'),
+
+-- Example of a cancelled payment (correction) / Näide tühistatud maksest (korrektsioon)
+(2, '2024-08-31', '2024-08-01', '2024-08-31', 6500.00, 1430.00, 5070.00, 1, 'SAL-2024-08-002-CANCEL', 'Cancelled', 'Cancelled - duplicate payment / Tühistatud - topeltmakse'),
+
+-- Example of cash payment (emergency payment) / Näide sularahamaksest (erakorraline makse)
+(6, '2024-08-15', '2024-08-01', '2024-08-15', 3000.00, 660.00, 2340.00, 2, 'CASH-2024-08-006', 'Completed', 'Emergency advance payment / Erakorraline ettemakse');
