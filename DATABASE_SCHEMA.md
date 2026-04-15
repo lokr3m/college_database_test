@@ -10,9 +10,9 @@
 - **Enrollments** = Course Registrations = **Kursusele registreerimised**
 
 **Automatic Timestamps:**
-All tables include `created_at` and `updated_at` fields that are automatically managed by MySQL. These track when records are created and last modified.
+All tables include `created_at` and `updated_at` fields that are managed by PostgreSQL. The `updated_at` field is updated via triggers.
 
-Kõik tabelid sisaldavad `created_at` ja `updated_at` välju, mida MySQL haldab automaatselt. Need jälgivad, millal kirjed loodi ja viimati muudeti.
+Kõik tabelid sisaldavad `created_at` ja `updated_at` välju, mida PostgreSQL haldab. `updated_at` uuendatakse triggeritega.
 
 ## Entity Relationship Overview
 
@@ -68,12 +68,12 @@ Salvestab infot akadeemiliste osakondade/kolledžide kohta
 
 | Column | Type | Constraints | Description | Kirjeldus (Estonian) |
 |--------|------|-------------|-------------|----------------------|
-| department_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| department_id | SERIAL | PRIMARY KEY | Unique identifier | Unikaalne identifikaator |
 | department_name | VARCHAR(100) | NOT NULL, UNIQUE | Department name (e.g., "Computer Science", "Mathematics") | Osakonna nimi |
 | building | VARCHAR(100) | | Building location where department is housed | Hoone, kus osakond asub |
 | budget | DECIMAL(12,2) | | Annual or allocated budget for the department | Aasta- või eraldatud eelarve |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
 
 **Relationships / Seosed**:
 - One-to-Many with Instructors (üks-mitmele õpetajatega)
@@ -89,16 +89,17 @@ Salvestab õpetajate infot ja osakonna kuuluvust
 
 | Column | Type | Constraints | Description | Kirjeldus (Estonian) |
 |--------|------|-------------|-------------|----------------------|
-| instructor_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| instructor_id | SERIAL | PRIMARY KEY | Unique identifier | Unikaalne identifikaator |
 | first_name | VARCHAR(50) | NOT NULL | First name | Eesnimi |
 | last_name | VARCHAR(50) | NOT NULL | Last name | Perekonnanimi |
 | email | VARCHAR(100) | NOT NULL, UNIQUE | Email address | E-posti aadress |
 | phone | VARCHAR(20) | | Phone number | Telefoninumber |
+| bank_account | VARCHAR(34) | | Bank account (IBAN) for salary payments | Pangakonto (IBAN) palgamakseks |
 | department_id | INT | NOT NULL, FOREIGN KEY | Associated department (REQUIRED - instructor must belong to one department) | Seotud osakond (KOHUSTUSLIK) |
 | salary | DECIMAL(10,2) | | Monthly or annual salary | Kuu- või aastapalk |
 | hire_date | DATE | | Date of hire | Töölevõtmise kuupäev |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
 
 **Relationships / Seosed**:
 - Many-to-One with Departments (mitu-ühele osakondadega)
@@ -126,7 +127,7 @@ See on ühendav/siduv tabel, mis loob 1:1 seose Osakondade ja Õpetajate vahel j
 | instructor_id | INT | UNIQUE, NOT NULL, FOREIGN KEY | Instructor serving as head (ensures instructor leads only one department) | Juhatajana töötav õpetaja (tagab, et õpetaja juhib ainult ühte osakonda) |
 | start_date | DATE | NOT NULL | Date when this instructor became head (tracks when current leadership began) | Kuupäev, millal see õpetaja sai juhatajaks (jälgib praeguse juhtimise algust) |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
 
 **Relationships / Seosed**:
 - One-to-One with Departments (üks-ühele osakondadega)
@@ -161,7 +162,7 @@ Kui on vaja jälgida osakonna juhtimise muutuste täielikku ajalugu:
 
 Create a separate **"DepartmentHeadHistory"** table:
 Loo eraldi **"DepartmentHeadHistory"** tabel:
-- `head_history_id` (PRIMARY KEY, AUTO_INCREMENT)
+- `head_history_id` (PRIMARY KEY, SERIAL)
 - `department_id` (FOREIGN KEY)
 - `instructor_id` (FOREIGN KEY)
 - `start_date` (NOT NULL) - when they became head / millal said juhatajaks
@@ -182,7 +183,7 @@ Salvestab kursuste pakkumisi ja ülesandeid
 
 | Column | Type | Constraints | Description | Kirjeldus (Estonian) |
 |--------|------|-------------|-------------|----------------------|
-| course_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| course_id | SERIAL | PRIMARY KEY | Unique identifier | Unikaalne identifikaator |
 | course_code | VARCHAR(20) | NOT NULL, UNIQUE | Course code (e.g., CS101, MATH200) | Kursuse kood |
 | course_name | VARCHAR(100) | NOT NULL | Course name | Kursuse nimi |
 | department_id | INT | NOT NULL, FOREIGN KEY | Department offering course | Kursust pakkuv osakond |
@@ -193,7 +194,7 @@ Salvestab kursuste pakkumisi ja ülesandeid
 | room_number | VARCHAR(20) | | Classroom location (see detailed explanation below) | Klassiruumi asukoht (vaata üksikasjalikku selgitust allpool) |
 | schedule | VARCHAR(100) | | Class meeting times (see detailed explanation below) | Tundide toimumise ajad (vaata üksikasjalikku selgitust allpool) |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
 
 **Scheduling Fields Detailed Explanation / Ajakava väljade üksikasjalik selgitus**:
 
@@ -318,7 +319,7 @@ Salvestab üliõilaste infot
 
 | Column | Type | Constraints | Description | Kirjeldus (Estonian) |
 |--------|------|-------------|-------------|----------------------|
-| student_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| student_id | SERIAL | PRIMARY KEY | Unique identifier | Unikaalne identifikaator |
 | first_name | VARCHAR(50) | NOT NULL | First name | Eesnimi |
 | last_name | VARCHAR(50) | NOT NULL | Last name | Perekonnanimi |
 | email | VARCHAR(100) | NOT NULL, UNIQUE | Email address | E-posti aadress |
@@ -327,7 +328,7 @@ Salvestab üliõilaste infot
 | enrollment_year | INT | | Year first enrolled | Esmakordselt registreerumise aasta |
 | major_department_id | INT | FOREIGN KEY | Major/primary department | Eriala/põhiosakond |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
 
 **Note / Märkus**: GPA (Grade Point Average / Keskmine hinne) is calculated from the Grades table, not stored directly.
 Keskmine hinne arvutatakse Hinnete tabelist, ei salvestata otse.
@@ -344,14 +345,14 @@ Haldab üliõilaste kursusele registreerimisi (Mitu-mitmele seos)
 
 | Column | Type | Constraints | Description | Kirjeldus (Estonian) |
 |--------|------|-------------|-------------|----------------------|
-| enrollment_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| enrollment_id | SERIAL | PRIMARY KEY | Unique identifier | Unikaalne identifikaator |
 | student_id | INT | NOT NULL, FOREIGN KEY | Enrolled student | Registreerunud üliõilane |
 | course_id | INT | NOT NULL, FOREIGN KEY | Enrolled course | Kursus, millele registreeruti |
 | enrollment_date | DATE | NOT NULL | Date of enrollment | Registreerumise kuupäev |
 | grade | VARCHAR(2) | | Final grade (e.g., "A", "B", "5", "4") | Lõplik hinne |
 | status | VARCHAR(20) | DEFAULT 'Active' | Enrollment status: "Active", "Completed", "Dropped", "Failed" | Registreerumise olek |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
 
 **Relationships / Seosed**:
 - Many-to-One with Students (mitu-ühele üliõilastega)
@@ -371,14 +372,14 @@ Salvestab üliõilaste individuaalseid hindeid nende registreeritud kursustes. K
 
 | Column | Type | Constraints | Description | Kirjeldus (Estonian) |
 |--------|------|-------------|-------------|----------------------|
-| grade_id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique identifier | Unikaalne identifikaator |
+| grade_id | SERIAL | PRIMARY KEY | Unique identifier | Unikaalne identifikaator |
 | enrollment_id | INT | NOT NULL, FOREIGN KEY | The enrollment this grade belongs to | Registreerumine, millele hinne kuulub |
 | grade_value | DECIMAL(3,2) | NOT NULL | Numeric grade value (1.0 to 5.0) | Numbriline hinde väärtus (1.0 kuni 5.0) |
 | grade_type | VARCHAR(50) | DEFAULT 'Exam' | Type of assessment (Exam, Homework, Project, Quiz, Lab, Essay, Presentation) | Hindamise tüüp |
 | grade_date | DATE | NOT NULL | Date when the grade was given | Kuupäev, millal hinne anti |
 | description | VARCHAR(255) | | Optional description of the grade | Hinde valikuline kirjeldus |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time (automatic) | Kirje loomise aeg (automaatne) |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time (automatic) | Viimase uuenduse aeg (automaatne) |
 
 **Relationships / Seosed**:
 - Many-to-One with Enrollments (mitu-ühele registreerimistega)
@@ -390,6 +391,45 @@ Salvestab üliõilaste individuaalseid hindeid nende registreeritud kursustes. K
 
 ---
 
+### 8. SalaryPayments (Palgamaksed)
+**Purpose / Eesmärk**: Stores salary payment exports created by the school system.
+
+| Column | Type | Constraints | Description | Kirjeldus (Estonian) |
+|--------|------|-------------|-------------|----------------------|
+| payment_id | SERIAL | PRIMARY KEY | Unique payment identifier | Unikaalne makse identifikaator |
+| instructor_id | INT | NOT NULL, FOREIGN KEY | Instructor receiving salary | Õpetaja, kellele makstakse |
+| amount | DECIMAL(10,2) | NOT NULL | Salary amount | Palga summa |
+| recipient_account | VARCHAR(34) | NOT NULL | Bank account (IBAN) | Pangakonto (IBAN) |
+| reference | VARCHAR(100) | NOT NULL | Payment reference | Makse selgitus |
+| status | VARCHAR(20) | DEFAULT 'pending' | Export status | Ekspordi staatus |
+| bank_payment_id | INT | FOREIGN KEY | Linked bank payment | Seotud panga makse |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time | Kirje loomise aeg |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time | Viimase uuenduse aeg |
+
+**Relationships / Seosed**:
+- Many-to-One with Instructors (mitu-ühele õpetajatega)
+- One-to-One with BankPayments (üks-ühele panga maksetega)
+
+---
+
+### 9. BankPayments (Panga maksed)
+**Purpose / Eesmärk**: Records payments processed by the simulated bank system.
+
+| Column | Type | Constraints | Description | Kirjeldus (Estonian) |
+|--------|------|-------------|-------------|----------------------|
+| bank_payment_id | SERIAL | PRIMARY KEY | Unique bank payment identifier | Unikaalne panga makse identifikaator |
+| salary_payment_id | INT | FOREIGN KEY | Linked salary payment | Seotud palgamakse |
+| recipient_account | VARCHAR(34) | NOT NULL | Bank account (IBAN) | Pangakonto (IBAN) |
+| amount | DECIMAL(10,2) | NOT NULL | Payment amount | Makse summa |
+| reference | VARCHAR(100) | | Payment reference | Makse selgitus |
+| status | VARCHAR(20) | DEFAULT 'received' | Bank status | Panga staatus |
+| processed_at | TIMESTAMP | | When bank processed payment | Millal pank töötles |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time | Kirje loomise aeg |
+| updated_at | TIMESTAMP | Trigger-updated | Last update time | Viimase uuenduse aeg |
+
+**Relationships / Seosed**:
+- Many-to-One with SalaryPayments (mitu-ühele palgamaksetega)
+
 ## Indexes
 
 For optimal query performance, the following indexes are created:
@@ -400,6 +440,8 @@ For optimal query performance, the following indexes are created:
 - **Students**: `email` (UNIQUE), `major_department_id`
 - **Enrollments**: `student_id`, `course_id`, UNIQUE(student_id, course_id)
 - **Grades**: `enrollment_id`, `grade_date`
+- **SalaryPayments**: `instructor_id`, `status`
+- **BankPayments**: `salary_payment_id`, `status`
 
 ## Cascade Rules
 
@@ -424,16 +466,16 @@ For optimal query performance, the following indexes are created:
 
 **[CRITICAL WARNING] / [KRIITILINE HOIATUS]:**
 
-**DO NOT use the 'root' MySQL user for application access!**
-**ÄRA kasuta 'root' MySQL kasutajat rakenduse juurdepääsuks!**
+**DO NOT use the default `postgres` user for application access!**
+**ÄRA kasuta vaikimisi `postgres` kasutajat rakenduse juurdepääsuks!**
 
-The 'root' user has dangerous privileges:
+The postgres user has dangerous privileges:
 - [NOT ALLOWED] DROP DATABASE (can delete entire database)
 - [NOT ALLOWED] DROP TABLE (can delete tables)
 - [NOT ALLOWED] CREATE USER (can create new users)
 - [NOT ALLOWED] GRANT (can give permissions to others)
 
-Root kasutajal on ohtlikud õigused:
+Postgres kasutajal on ohtlikud õigused:
 - [NOT ALLOWED] DROP DATABASE (saab kustutada terve andmebaasi)
 - [NOT ALLOWED] DROP TABLE (saab kustutada tabeleid)
 - [NOT ALLOWED] CREATE USER (saab luua uusi kasutajaid)
@@ -443,9 +485,11 @@ Root kasutajal on ohtlikud õigused:
 
 1. Create a dedicated application user with limited privileges:
    ```sql
-   CREATE USER 'college_app'@'localhost' IDENTIFIED BY 'strong_password';
-   GRANT SELECT, INSERT, UPDATE, DELETE ON college_db.* TO 'college_app'@'localhost';
-   FLUSH PRIVILEGES;
+   CREATE USER college_app WITH PASSWORD 'strong_password';
+   GRANT CONNECT ON DATABASE college_db TO college_app;
+   GRANT USAGE ON SCHEMA public TO college_app;
+   GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO college_app;
+   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO college_app;
    ```
 
 2. This user can ONLY:

@@ -21,6 +21,7 @@
             <button class="nav-btn" data-section="enrollments">Enrollments</button>
             <button class="nav-btn" data-section="grades">Grades</button>
             <button class="nav-btn" data-section="department-heads">Department Heads</button>
+            <button class="nav-btn" data-section="payments">Payments</button>
         </nav>
 
         <main id="content-area">
@@ -85,6 +86,15 @@
                     <button class="btn btn-primary" onclick="showAddDepartmentHeadForm()">+ Assign Department Head</button>
                 </div>
                 <div id="department-heads-list" class="data-grid"></div>
+            </section>
+
+            <!-- Payments Section -->
+            <section id="payments-section" class="content-section">
+                <div class="section-header">
+                    <h2>Salary Payments</h2>
+                    <button class="btn btn-primary" onclick="exportSalaryPayments()">Export Salaries to Bank</button>
+                </div>
+                <div id="payments-list" class="data-grid"></div>
             </section>
         </main>
     </div>

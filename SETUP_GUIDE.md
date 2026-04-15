@@ -1,4 +1,4 @@
-# College Database - Quick Setup Guide
+# College Database - Quick Setup Guide (PostgreSQL + WSL)
 
 ## Step-by-Step Installation
 
@@ -6,8 +6,8 @@
 
 **For Node.js Backend (Recommended):**
 ```bash
-# Check MySQL
-mysql --version
+# Check PostgreSQL
+psql --version
 
 # Check Node.js (version 16 or higher recommended)
 node --version
@@ -18,48 +18,59 @@ npm --version
 
 **For PHP Backend (Legacy):**
 ```bash
-# Check MySQL
-mysql --version
+# Check PostgreSQL
+psql --version
 
 # Check PHP
 php --version
 
-# PHP should be 7.4 or higher with PDO MySQL extension
+# PHP should be 7.4 or higher with PDO PostgreSQL extension
 php -m | grep -i pdo
+```
+
+**WSL PostgreSQL Setup (Ubuntu):**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo service postgresql start
+
+# Create or update the postgres password (optional)
+sudo -u postgres psql
 ```
 
 ### 2. Database Setup
 
-**Option A: Using MySQL Command Line**
+**Option A: Using PostgreSQL Command Line**
 ```bash
-# Login to MySQL
-mysql -u root -p
+# Login to PostgreSQL
+psql -U postgres
 
 # Run setup commands
-mysql> source database/config.sql;
-mysql> source database/schema.sql;
-mysql> source database/sample_data.sql;
-mysql> exit;
+postgres=# \i database/config.sql
+postgres=# \c college_db
+college_db=# \i database/schema.sql
+college_db=# \i database/sample_data.sql
+college_db=# \q
 ```
 
-**Option B: Using phpMyAdmin**
-1. Login to phpMyAdmin
+**Option B: Using pgAdmin**
+1. Login to pgAdmin
 2. Create database named `college_db`
-3. Import `database/schema.sql`
-4. Import `database/sample_data.sql`
+3. Run `database/schema.sql`
+4. Run `database/sample_data.sql`
 
 ### 3. Configure Backend
 
 **IMPORTANT SECURITY NOTE / TÄHTIS TURVAMÄRKUS:**
 
-For production environments, DO NOT use the 'root' MySQL user!
-The root user has dangerous privileges including:
+For production environments, DO NOT use the default `postgres` user!
+The postgres user has dangerous privileges including:
 - DROP DATABASE (can delete entire database)
 - DROP TABLE (can delete tables)
 - CREATE USER (can create new users)
 
-Tootmiskeskkondades ÄRA KASUTA 'root' MySQL kasutajat!
-Root kasutajal on ohtlikud õigused, sealhulgas:
+Tootmiskeskkondades ÄRA KASUTA vaikimisi `postgres` kasutajat!
+Postgres kasutajal on ohtlikud õigused, sealhulgas:
 - DROP DATABASE (saab kustutada terve andmebaasi)
 - DROP TABLE (saab kustutada tabeleid)
 - CREATE USER (saab luua uusi kasutajaid)
@@ -70,10 +81,10 @@ For Node.js backend, edit `backend/config.js`:
 ```javascript
 const dbConfig = {
     host: 'localhost',
-    port: 3306,
+    port: 5432,
     database: 'college_db',
-    user: 'root',              // Only for development!
-    password: 'your_root_password', // Only for development!
+    user: 'postgres',              // Only for development!
+    password: 'your_postgres_password', // Only for development!
     // ... other settings
 };
 ```
@@ -81,41 +92,41 @@ const dbConfig = {
 For PHP backend (legacy), edit `backend/config.php`:
 ```php
 define('DB_HOST', 'localhost');
-define('DB_PORT', '3306');
+define('DB_PORT', '5432');
 define('DB_NAME', 'college_db');
-define('DB_USER', 'root');              // Only for development!
-define('DB_PASS', 'your_root_password'); // Only for development!
+define('DB_USER', 'postgres');              // Only for development!
+define('DB_PASS', 'your_postgres_password'); // Only for development!
 ```
 
 **Option B: Production (Secure - Recommended)**
 
 1. Create a limited-privilege database user:
    ```bash
-   mysql -u root -p
+   psql -U postgres
    ```
 
 2. Run these SQL commands:
    ```sql
    -- Create application user with limited privileges
-   CREATE USER 'college_app'@'localhost' IDENTIFIED BY 'your_secure_password';
+   CREATE USER college_app WITH PASSWORD 'your_secure_password';
    
    -- Grant only necessary permissions (SELECT, INSERT, UPDATE, DELETE)
-   GRANT SELECT, INSERT, UPDATE, DELETE ON college_db.* TO 'college_app'@'localhost';
-   
-   -- Apply changes
-   FLUSH PRIVILEGES;
+   GRANT CONNECT ON DATABASE college_db TO college_app;
+   GRANT USAGE ON SCHEMA public TO college_app;
+   GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO college_app;
+   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO college_app;
    
    -- Verify permissions
-   SHOW GRANTS FOR 'college_app'@'localhost';
+   \dp
    
-   EXIT;
+   \q
    ```
 
 3. For Node.js backend, edit `backend/config.js` to use the secure user:
    ```javascript
    const dbConfig = {
        host: 'localhost',
-       port: 3306,
+       port: 5432,
        database: 'college_db',
        user: 'college_app',           // Limited privilege user
        password: 'your_secure_password',  // Strong password
@@ -126,7 +137,7 @@ define('DB_PASS', 'your_root_password'); // Only for development!
    For PHP backend (legacy), edit `backend/config.php`:
    ```php
    define('DB_HOST', 'localhost');
-   define('DB_PORT', '3306');
+   define('DB_PORT', '5432');
    define('DB_NAME', 'college_db');
    define('DB_USER', 'college_app');           // Limited privilege user
    define('DB_PASS', 'your_secure_password');  // Strong password
@@ -154,6 +165,8 @@ node api.js
 ```
 
 The server will start on port 8000 by default.
+
+**Payments Note:** Salary payment export and bank integration endpoints are implemented in the Node.js backend.
 
 **PHP Backend (Legacy - Development):**
 ```bash
@@ -191,10 +204,10 @@ Open browser and navigate to:
 ## Troubleshooting
 
 ### Database Connection Failed
-- Check MySQL is running: `sudo service mysql status`
+- Check PostgreSQL is running: `sudo service postgresql status`
 - For Node.js: Verify credentials in `backend/config.js`
 - For PHP: Verify credentials in `backend/config.php`
-- For PHP: Check PDO MySQL extension: `php -m | grep pdo_mysql`
+- For PHP: Check PDO PostgreSQL extension: `php -m | grep pdo_pgsql`
 
 ### 500 Internal Server Error
 - Check server error logs (Node.js console or PHP error logs)
@@ -209,7 +222,7 @@ Open browser and navigate to:
 ### Node.js Specific Issues
 - Run `npm install` to ensure all dependencies are installed
 - Check for port conflicts (default port 8000)
-- Verify mysql2 package is installed: `npm list mysql2`
+- Verify pg package is installed: `npm list pg`
 
 ## Default Sample Data
 

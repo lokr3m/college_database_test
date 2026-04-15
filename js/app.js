@@ -15,6 +15,7 @@ let courses = [];
 let enrollments = [];
 let grades = [];
 let departmentHeads = [];
+let salaryPayments = [];
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -62,7 +63,8 @@ async function loadAllData() {
         loadCourses(),
         loadEnrollments(),
         loadGrades(),
-        loadDepartmentHeads()
+        loadDepartmentHeads(),
+        loadSalaryPayments()
     ]);
     renderCurrentSection();
 }
@@ -97,6 +99,10 @@ async function loadSectionData(section) {
         case 'department-heads':
             await loadDepartmentHeads();
             renderDepartmentHeads();
+            break;
+        case 'payments':
+            await loadSalaryPayments();
+            renderPayments();
             break;
     }
 }
@@ -162,6 +168,10 @@ async function loadGrades() {
 
 async function loadDepartmentHeads() {
     departmentHeads = await apiCall('department-heads');
+}
+
+async function loadSalaryPayments() {
+    salaryPayments = await apiCall('salary-payments');
 }
 
 // Render functions
@@ -231,6 +241,10 @@ function renderInstructors() {
                 <div class="card-field">
                     <div class="field-label">Phone</div>
                     <div class="field-value">${instructor.phone || 'N/A'}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Bank Account</div>
+                    <div class="field-value">${instructor.bank_account || 'N/A'}</div>
                 </div>
                 <div class="card-field">
                     <div class="field-label">Department</div>
@@ -473,6 +487,50 @@ function renderDepartmentHeads() {
     `).join('');
 }
 
+function renderPayments() {
+    const container = document.getElementById('payments-list');
+    
+    if (salaryPayments.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">💸</div>
+                <div class="empty-state-text">No salary payments exported yet.</div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = salaryPayments.map(payment => `
+        <div class="data-card">
+            <div class="card-header">
+                <div class="card-title">${payment.instructor_name}</div>
+            </div>
+            <div class="card-body">
+                <div class="card-field">
+                    <div class="field-label">Amount</div>
+                    <div class="field-value">$${parseFloat(payment.amount).toLocaleString()}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Recipient Account</div>
+                    <div class="field-value">${payment.recipient_account}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Reference</div>
+                    <div class="field-value">${payment.reference}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Status</div>
+                    <div class="field-value">${payment.status}${payment.bank_status ? ` (Bank: ${payment.bank_status})` : ''}</div>
+                </div>
+                <div class="card-field">
+                    <div class="field-label">Processed At</div>
+                    <div class="field-value">${payment.bank_processed_at || 'Pending'}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
 // Modal functions
 function showModal(content) {
     document.getElementById('modal-body').innerHTML = content;
@@ -493,6 +551,17 @@ function showAlert(message, type = 'info') {
     container.insertBefore(alertDiv, container.firstChild);
     
     setTimeout(() => alertDiv.remove(), 5000);
+}
+
+async function exportSalaryPayments() {
+    try {
+        const result = await apiCall('salary-payments/export', 'POST');
+        await loadSalaryPayments();
+        renderPayments();
+        showAlert(result.message || 'Salary payments exported successfully!', 'success');
+    } catch (error) {
+        // Error already shown by apiCall
+    }
 }
 
 // Department functions
@@ -622,6 +691,10 @@ function showAddInstructorForm() {
                 <input type="text" name="phone">
             </div>
             <div class="form-group">
+                <label>Bank Account (IBAN)</label>
+                <input type="text" name="bank_account" placeholder="EE00...">
+            </div>
+            <div class="form-group">
                 <label>Department*</label>
                 <select name="department_id" required>
                     <option value="">Select Department</option>
@@ -687,6 +760,10 @@ async function editInstructor(id) {
             <div class="form-group">
                 <label>Phone</label>
                 <input type="text" name="phone" value="${instructor.phone || ''}">
+            </div>
+            <div class="form-group">
+                <label>Bank Account (IBAN)</label>
+                <input type="text" name="bank_account" value="${instructor.bank_account || ''}" placeholder="EE00...">
             </div>
             <div class="form-group">
                 <label>Department*</label>

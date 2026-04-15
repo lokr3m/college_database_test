@@ -10,18 +10,20 @@
 -- Enrollments = Course Registrations = Kursusele registreerimised
 --
 -- TIMESTAMPS:
--- created_at and updated_at fields are automatically managed by MySQL
--- and track when records are created and last modified.
--- Need väljad haldab MySQL automaatselt ja jälgivad, millal kirjed loodi ja viimati muudeti.
+-- created_at and updated_at fields are managed by PostgreSQL.
+-- updated_at is maintained via triggers to track when records are modified.
+-- Need väljad haldab PostgreSQL automaatselt ja updated_at uuendatakse triggeritega.
 
 -- Drop tables if they exist (in reverse order of dependencies)
-DROP TABLE IF EXISTS Grades;
-DROP TABLE IF EXISTS Enrollments;
-DROP TABLE IF EXISTS DepartmentHeads;
-DROP TABLE IF EXISTS Courses;
-DROP TABLE IF EXISTS Students;
-DROP TABLE IF EXISTS Instructors;
-DROP TABLE IF EXISTS Departments;
+DROP TABLE IF EXISTS BankPayments CASCADE;
+DROP TABLE IF EXISTS SalaryPayments CASCADE;
+DROP TABLE IF EXISTS Grades CASCADE;
+DROP TABLE IF EXISTS Enrollments CASCADE;
+DROP TABLE IF EXISTS DepartmentHeads CASCADE;
+DROP TABLE IF EXISTS Courses CASCADE;
+DROP TABLE IF EXISTS Students CASCADE;
+DROP TABLE IF EXISTS Instructors CASCADE;
+DROP TABLE IF EXISTS Departments CASCADE;
 
 -- ============================================================================
 -- DEPARTMENTS TABLE (Osakonnad / Kolledžid)
@@ -39,12 +41,12 @@ DROP TABLE IF EXISTS Departments;
 --   - budget: Annual or allocated budget for the department / Aasta- või eraldatud eelarve osakonnale
 -- ============================================================================
 CREATE TABLE Departments (
-    department_id INT PRIMARY KEY AUTO_INCREMENT,
+    department_id SERIAL PRIMARY KEY,
     department_name VARCHAR(100) NOT NULL UNIQUE,
     building VARCHAR(100),
     budget DECIMAL(12, 2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================================================
@@ -62,6 +64,7 @@ CREATE TABLE Departments (
 --   - last_name: Instructor's last name / Õpetaja perekonnanimi
 --   - email: Contact email (must be unique) / Kontakt-email (peab olema unikaalne)
 --   - phone: Contact phone number / Kontakttelefon
+--   - bank_account: Bank account (IBAN) for salary payments / Pangakonto (IBAN) palgamakseks
 --   - department_id: Department where instructor works (REQUIRED) / Osakond, kus õpetaja töötab (KOHUSTUSLIK)
 --   - salary: Monthly or annual salary / Kuu- või aastapalk
 --   - hire_date: Date when instructor was hired / Kuupäev, millal õpetaja palgati
@@ -73,19 +76,18 @@ CREATE TABLE Departments (
 --   - Õpetaja võib õpetada MITUT kursust
 -- ============================================================================
 CREATE TABLE Instructors (
-    instructor_id INT PRIMARY KEY AUTO_INCREMENT,
+    instructor_id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20),
+    bank_account VARCHAR(34),
     department_id INT NOT NULL,
     salary DECIMAL(10, 2),
     hire_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (department_id) REFERENCES Departments(department_id) ON DELETE CASCADE,
-    INDEX idx_department (department_id),
-    INDEX idx_email (email)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (department_id) REFERENCES Departments(department_id) ON DELETE CASCADE
 );
 
 -- ============================================================================
@@ -181,7 +183,7 @@ CREATE TABLE DepartmentHeads (
     instructor_id INT UNIQUE NOT NULL,
     start_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (department_id) REFERENCES Departments(department_id) ON DELETE CASCADE,
     FOREIGN KEY (instructor_id) REFERENCES Instructors(instructor_id) ON DELETE CASCADE
 );
@@ -330,7 +332,7 @@ CREATE TABLE DepartmentHeads (
 --   pakuvad lihtsust, samas kui kombinatsioon annab täieliku ajakava informatsiooni.
 -- ============================================================================
 CREATE TABLE Courses (
-    course_id INT PRIMARY KEY AUTO_INCREMENT,
+    course_id SERIAL PRIMARY KEY,
     course_code VARCHAR(20) NOT NULL UNIQUE,
     course_name VARCHAR(100) NOT NULL,
     department_id INT NOT NULL,
@@ -341,12 +343,9 @@ CREATE TABLE Courses (
     room_number VARCHAR(20),
     schedule VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (department_id) REFERENCES Departments(department_id) ON DELETE CASCADE,
-    FOREIGN KEY (instructor_id) REFERENCES Instructors(instructor_id) ON DELETE SET NULL,
-    INDEX idx_department (department_id),
-    INDEX idx_instructor (instructor_id),
-    INDEX idx_course_code (course_code)
+    FOREIGN KEY (instructor_id) REFERENCES Instructors(instructor_id) ON DELETE SET NULL
 );
 
 -- ============================================================================
@@ -377,7 +376,7 @@ CREATE TABLE Courses (
 --   - Õpilasel on ÜKS põhieriala osakond
 -- ============================================================================
 CREATE TABLE Students (
-    student_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
@@ -386,10 +385,8 @@ CREATE TABLE Students (
     enrollment_year INT,
     major_department_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (major_department_id) REFERENCES Departments(department_id) ON DELETE SET NULL,
-    INDEX idx_email (email),
-    INDEX idx_major_department (major_department_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (major_department_id) REFERENCES Departments(department_id) ON DELETE SET NULL
 );
 
 -- ============================================================================
@@ -421,19 +418,17 @@ CREATE TABLE Students (
 --   - Õpilane saab samale kursusele registreeruda ainult ÜÜKS kord (tagatud UNIQUE piiranguga)
 -- ============================================================================
 CREATE TABLE Enrollments (
-    enrollment_id INT PRIMARY KEY AUTO_INCREMENT,
+    enrollment_id SERIAL PRIMARY KEY,
     student_id INT NOT NULL,
     course_id INT NOT NULL,
     enrollment_date DATE NOT NULL,
     grade VARCHAR(2),
     status VARCHAR(20) DEFAULT 'Active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES Students(student_id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES Courses(course_id) ON DELETE CASCADE,
-    UNIQUE KEY unique_enrollment (student_id, course_id),
-    INDEX idx_student (student_id),
-    INDEX idx_course (course_id)
+    UNIQUE (student_id, course_id)
 );
 
 -- ============================================================================
@@ -460,15 +455,120 @@ CREATE TABLE Enrollments (
 --   - Õpilase keskmine hinne arvutatakse kõigi grade_value väärtuste keskmisena
 -- ============================================================================
 CREATE TABLE Grades (
-    grade_id INT PRIMARY KEY AUTO_INCREMENT,
+    grade_id SERIAL PRIMARY KEY,
     enrollment_id INT NOT NULL,
     grade_value DECIMAL(3, 2) NOT NULL CHECK (grade_value >= 1.0 AND grade_value <= 5.0),
     grade_type VARCHAR(50) DEFAULT 'Exam',
     grade_date DATE NOT NULL,
     description VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (enrollment_id) REFERENCES Enrollments(enrollment_id) ON DELETE CASCADE,
-    INDEX idx_enrollment (enrollment_id),
-    INDEX idx_grade_date (grade_date)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (enrollment_id) REFERENCES Enrollments(enrollment_id) ON DELETE CASCADE
 );
+
+-- ============================================================================
+-- SALARY PAYMENTS TABLE (Palgamaksed)
+-- ============================================================================
+CREATE TABLE SalaryPayments (
+    payment_id SERIAL PRIMARY KEY,
+    instructor_id INT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    recipient_account VARCHAR(34) NOT NULL,
+    reference VARCHAR(100) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    bank_payment_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (instructor_id) REFERENCES Instructors(instructor_id) ON DELETE CASCADE
+);
+
+-- ============================================================================
+-- BANK PAYMENTS TABLE (Panga maksed)
+-- ============================================================================
+CREATE TABLE BankPayments (
+    bank_payment_id SERIAL PRIMARY KEY,
+    salary_payment_id INT,
+    recipient_account VARCHAR(34) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    reference VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'received',
+    processed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (salary_payment_id) REFERENCES SalaryPayments(payment_id) ON DELETE SET NULL
+);
+
+ALTER TABLE SalaryPayments
+    ADD CONSTRAINT salary_payments_bank_payment_fk
+    FOREIGN KEY (bank_payment_id) REFERENCES BankPayments(bank_payment_id) ON DELETE SET NULL;
+
+-- ============================================================================
+-- INDEXES
+-- ============================================================================
+CREATE INDEX idx_instructors_department ON Instructors(department_id);
+CREATE INDEX idx_instructors_email ON Instructors(email);
+
+CREATE INDEX idx_courses_department ON Courses(department_id);
+CREATE INDEX idx_courses_instructor ON Courses(instructor_id);
+CREATE INDEX idx_courses_course_code ON Courses(course_code);
+
+CREATE INDEX idx_students_email ON Students(email);
+CREATE INDEX idx_students_major_department ON Students(major_department_id);
+
+CREATE INDEX idx_enrollments_student ON Enrollments(student_id);
+CREATE INDEX idx_enrollments_course ON Enrollments(course_id);
+
+CREATE INDEX idx_grades_enrollment ON Grades(enrollment_id);
+CREATE INDEX idx_grades_grade_date ON Grades(grade_date);
+
+CREATE INDEX idx_salary_payments_instructor ON SalaryPayments(instructor_id);
+CREATE INDEX idx_salary_payments_status ON SalaryPayments(status);
+CREATE INDEX idx_bank_payments_salary_payment ON BankPayments(salary_payment_id);
+CREATE INDEX idx_bank_payments_status ON BankPayments(status);
+
+-- ============================================================================
+-- TRIGGERS FOR updated_at
+-- ============================================================================
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at_departments
+BEFORE UPDATE ON Departments
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_instructors
+BEFORE UPDATE ON Instructors
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_department_heads
+BEFORE UPDATE ON DepartmentHeads
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_courses
+BEFORE UPDATE ON Courses
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_students
+BEFORE UPDATE ON Students
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_enrollments
+BEFORE UPDATE ON Enrollments
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_grades
+BEFORE UPDATE ON Grades
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_salary_payments
+BEFORE UPDATE ON SalaryPayments
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_updated_at_bank_payments
+BEFORE UPDATE ON BankPayments
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();

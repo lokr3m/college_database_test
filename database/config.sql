@@ -1,14 +1,14 @@
 -- ============================================================================
 -- Database Configuration / Andmebaasi Konfiguratsioon
 -- ============================================================================
--- This script creates the college database.
--- See skript loob kolledži andmebaasi.
+-- This script creates the college database in PostgreSQL.
+-- See skript loob kolledži andmebaasi PostgreSQL-is.
 --
 -- SECURITY WARNING / TURVALISUSE HOIATUS:
--- DO NOT use the 'root' user for application access in production!
--- ÄRA kasuta 'root' kasutajat rakenduse juurdepääsuks toodangus!
+-- DO NOT use the default 'postgres' user for application access in production!
+-- ÄRA kasuta vaikimisi 'postgres' kasutajat rakenduse juurdepääsuks toodangus!
 --
--- The root user has full privileges including DROP DATABASE and DROP TABLE.
+-- The postgres user has full privileges including DROP DATABASE and DROP TABLE.
 -- For application use, create a limited-privilege user that can only:
 --   - SELECT, INSERT, UPDATE, DELETE on tables
 --   - Cannot DROP tables or databases
@@ -25,9 +25,10 @@
 -- ============================================================================
 
 -- Create the database / Loo andmebaas
-CREATE DATABASE IF NOT EXISTS college_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE college_db;
 
-USE college_db;
+-- Connect to the database / Ühendu andmebaasiga
+-- In psql, run: \c college_db
 
 -- ============================================================================
 -- OPTIONAL: Create a limited-privilege user for application use
@@ -36,12 +37,14 @@ USE college_db;
 -- Uncomment and customize these lines to create a secure application user:
 -- Eemalda kommentaar ja kohanda neid ridu turvalise rakenduse kasutaja loomiseks:
 --
--- CREATE USER IF NOT EXISTS 'college_app'@'localhost' IDENTIFIED BY 'your_secure_password';
--- GRANT SELECT, INSERT, UPDATE, DELETE ON college_db.* TO 'college_app'@'localhost';
--- FLUSH PRIVILEGES;
+-- CREATE USER college_app WITH PASSWORD 'your_secure_password';
+-- GRANT CONNECT ON DATABASE college_db TO college_app;
+-- GRANT USAGE ON SCHEMA public TO college_app;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO college_app;
+-- ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO college_app;
 --
--- Then update backend/config.php to use this user instead of root:
--- Seejärel uuenda backend/config.php, et kasutada seda kasutajat root asemel:
+-- Then update backend/config.php to use this user instead of postgres:
+-- Seejärel uuenda backend/config.php, et kasutada seda kasutajat postgres asemel:
 --   DB_USER: 'college_app'
 --   DB_PASS: 'your_secure_password'
 -- ============================================================================

@@ -194,8 +194,8 @@ function getInstructorById($conn, $id) {
 function createInstructor($conn) {
     $data = json_decode(file_get_contents('php://input'), true);
     $stmt = $conn->prepare("
-        INSERT INTO Instructors (first_name, last_name, email, phone, department_id, salary, hire_date) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Instructors (first_name, last_name, email, phone, bank_account, department_id, salary, hire_date) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
     try {
         $stmt->execute([
@@ -203,6 +203,7 @@ function createInstructor($conn) {
             $data['last_name'],
             $data['email'],
             $data['phone'] ?? null,
+            $data['bank_account'] ?? null,
             $data['department_id'],
             $data['salary'] ?? null,
             $data['hire_date'] ?? null
@@ -219,7 +220,7 @@ function updateInstructor($conn, $id) {
     $data = json_decode(file_get_contents('php://input'), true);
     $stmt = $conn->prepare("
         UPDATE Instructors 
-        SET first_name = ?, last_name = ?, email = ?, phone = ?, department_id = ?, salary = ?, hire_date = ? 
+        SET first_name = ?, last_name = ?, email = ?, phone = ?, bank_account = ?, department_id = ?, salary = ?, hire_date = ? 
         WHERE instructor_id = ?
     ");
     try {
@@ -228,6 +229,7 @@ function updateInstructor($conn, $id) {
             $data['last_name'],
             $data['email'],
             $data['phone'] ?? null,
+            $data['bank_account'] ?? null,
             $data['department_id'],
             $data['salary'] ?? null,
             $data['hire_date'] ?? null,

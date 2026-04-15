@@ -191,9 +191,9 @@ Potentsiaalsed funktsioonid tulevaseks arenduseks:
 ## 🚀 Setup Instructions
 
 ### Prerequisites
-- MySQL Server (5.7 or higher)
+- PostgreSQL Server (13 or higher, including WSL install)
 - Node.js (16 or higher) - for Node.js backend (recommended)
-- OR PHP (7.4 or higher) with PDO MySQL extension - for PHP backend (legacy)
+- OR PHP (7.4 or higher) with PDO PostgreSQL extension - for PHP backend (legacy)
 - Modern web browser
 
 ### Installation Steps
@@ -205,21 +205,22 @@ Potentsiaalsed funktsioonid tulevaseks arenduseks:
    ```
 
 2. **Create the database**
-   - Login to MySQL:
+   - Login to PostgreSQL:
      ```bash
-     mysql -u root -p
+     psql -U postgres
      ```
-   - Create the database:
+   - Create the database and user:
      ```sql
-     source database/config.sql
+     \i database/config.sql
      ```
-   - Create the tables:
+   - Connect and create the tables:
      ```sql
-     source database/schema.sql
+     \c college_db
+     \i database/schema.sql
      ```
    - (Optional) Insert sample data:
      ```sql
-     source database/sample_data.sql
+     \i database/sample_data.sql
      ```
 
 3. **Configure the backend**
@@ -230,11 +231,11 @@ Potentsiaalsed funktsioonid tulevaseks arenduseks:
      cd backend
      npm install
      ```
-   - Edit `backend/config.js` and update the database credentials:
+   - Edit `backend/config.js` and update the PostgreSQL credentials:
      ```javascript
      const dbConfig = {
          host: 'localhost',
-         port: 3306,
+         port: 5432,
          database: 'college_db',
          user: 'your_username',
          password: 'your_password',
@@ -243,10 +244,10 @@ Potentsiaalsed funktsioonid tulevaseks arenduseks:
      ```
 
    **For PHP backend (legacy):**
-   - Edit `backend/config.php` and update the database credentials:
+   - Edit `backend/config.php` and update the PostgreSQL credentials:
      ```php
      define('DB_HOST', 'localhost');
-     define('DB_PORT', '3306');
+     define('DB_PORT', '5432');
      define('DB_NAME', 'college_db');
      define('DB_USER', 'your_username');
      define('DB_PASS', 'your_password');
@@ -281,6 +282,7 @@ The web interface provides the following features:
 - **Courses** - Create and manage courses
 - **Enrollments** - Enroll students in courses and track grades
 - **Department Heads** - Assign and manage department heads
+- **Payments** - Export salary payments and view bank statuses
 
 ### Features
 - ✅ Full CRUD operations for all entities
@@ -289,6 +291,7 @@ The web interface provides the following features:
 - ✅ Form validation
 - ✅ Relationship management
 - ✅ Modal-based forms
+- ✅ Salary payment export to bank with status tracking
 
 ## 🗂️ Project Structure
 
@@ -322,6 +325,9 @@ The backend provides RESTful API endpoints:
 - **Courses**: `/backend/api.php?request=courses`
 - **Enrollments**: `/backend/api.php?request=enrollments`
 - **Department Heads**: `/backend/api.php?request=department-heads`
+- **Salary Payments**: `/backend/api.php?request=salary-payments`
+- **Export Salary Payments**: `/backend/api.php?request=salary-payments/export` (POST)
+- **Bank Payments**: `/backend/api.php?request=bank-payments`
 
 Each endpoint supports:
 - `GET` - Retrieve records

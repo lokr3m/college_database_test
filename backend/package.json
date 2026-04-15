@@ -7,12 +7,17 @@
     "start": "node api.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["college", "database", "api", "express"],
+  "keywords": [
+    "college",
+    "database",
+    "api",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.2.1",
-    "mysql2": "^3.15.3"
+    "pg": "^8.20.0"
   }
 }

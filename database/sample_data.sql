@@ -10,15 +10,15 @@ INSERT INTO Departments (department_name, building, budget) VALUES
 ('Business Administration', 'Business Hall', 600000.00);
 
 -- Insert Instructors
-INSERT INTO Instructors (first_name, last_name, email, phone, department_id, salary, hire_date) VALUES
-('John', 'Smith', 'john.smith@college.edu', '555-0101', 1, 85000.00, '2015-08-15'),
-('Emily', 'Johnson', 'emily.johnson@college.edu', '555-0102', 1, 78000.00, '2017-01-10'),
-('Michael', 'Williams', 'michael.williams@college.edu', '555-0103', 2, 82000.00, '2014-09-01'),
-('Sarah', 'Brown', 'sarah.brown@college.edu', '555-0104', 2, 75000.00, '2018-08-20'),
-('David', 'Jones', 'david.jones@college.edu', '555-0105', 3, 88000.00, '2013-07-15'),
-('Jennifer', 'Garcia', 'jennifer.garcia@college.edu', '555-0106', 4, 72000.00, '2016-01-05'),
-('Robert', 'Martinez', 'robert.martinez@college.edu', '555-0107', 5, 95000.00, '2012-09-01'),
-('Lisa', 'Anderson', 'lisa.anderson@college.edu', '555-0108', 5, 87000.00, '2015-06-15');
+INSERT INTO Instructors (first_name, last_name, email, phone, bank_account, department_id, salary, hire_date) VALUES
+('John', 'Smith', 'john.smith@college.edu', '555-0101', 'EE382200221020145685', 1, 85000.00, '2015-08-15'),
+('Emily', 'Johnson', 'emily.johnson@college.edu', '555-0102', 'EE112200221020145686', 1, 78000.00, '2017-01-10'),
+('Michael', 'Williams', 'michael.williams@college.edu', '555-0103', 'EE072200221020145687', 2, 82000.00, '2014-09-01'),
+('Sarah', 'Brown', 'sarah.brown@college.edu', '555-0104', 'EE662200221020145688', 2, 75000.00, '2018-08-20'),
+('David', 'Jones', 'david.jones@college.edu', '555-0105', 'EE902200221020145689', 3, 88000.00, '2013-07-15'),
+('Jennifer', 'Garcia', 'jennifer.garcia@college.edu', '555-0106', 'EE342200221020145680', 4, 72000.00, '2016-01-05'),
+('Robert', 'Martinez', 'robert.martinez@college.edu', '555-0107', 'EE552200221020145681', 5, 95000.00, '2012-09-01'),
+('Lisa', 'Anderson', 'lisa.anderson@college.edu', '555-0108', 'EE442200221020145682', 5, 87000.00, '2015-06-15');
 
 -- Insert Department Heads
 INSERT INTO DepartmentHeads (department_id, instructor_id, start_date) VALUES
