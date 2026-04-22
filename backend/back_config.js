@@ -1,6 +1,6 @@
 require('dotenv').config();
-const db = require('./config');            // college_db
-const bankDb = require('./bank_config');   // bank
+const db = require('./config');          // college_db
+const bankDb = require('./bank_config'); // bank
 
 async function sendPendingPaymentsToBankDb() {
   try {
