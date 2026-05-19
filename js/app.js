@@ -280,9 +280,9 @@ function renderStudents() {
                     <div class="field-label">Major</div>
                     <div class="field-value">${student.major_name || 'Undeclared'}</div>
                 </div>
-                <div class="card-field">
-                    <div class="field-label">GPA (Calculated)</div>
-                    <div class="field-value">${student.gpa ? parseFloat(student.gpa).toFixed(2) : 'No grades yet'}</div>
+                <div class="card-field gpa-field">
+                    <div class="field-label">Average Grade / Keskmine hinne</div>
+                    <div class="field-value gpa-value ${student.gpa ? 'has-gpa' : ''}">${student.gpa ? parseFloat(student.gpa).toFixed(2) : 'No grades yet'}</div>
                 </div>
                 <div class="card-field">
                     <div class="field-label">Enrollment Year</div>
